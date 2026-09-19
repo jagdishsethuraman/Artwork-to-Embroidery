@@ -1226,7 +1226,22 @@ function renderImportPreview() {
         vCtx.lineTo(vCenterX + p.x * vScale, vCenterY + p.y * vScale);
       }
       vCtx.closePath();
-      vCtx.fill();
+
+      // Punch out cutout holes if present
+      if (poly.holes && poly.holes.length > 0) {
+        for (const hole of poly.holes) {
+          if (!hole || hole.length < 3) continue;
+          const h0 = hole[0];
+          vCtx.moveTo(vCenterX + h0.x * vScale, vCenterY + h0.y * vScale);
+          for (let j = 1; j < hole.length; j++) {
+            const hp = hole[j];
+            vCtx.lineTo(vCenterX + hp.x * vScale, vCenterY + hp.y * vScale);
+          }
+          vCtx.closePath();
+        }
+      }
+
+      vCtx.fill('evenodd');
       vCtx.stroke();
     }
   }

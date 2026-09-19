@@ -78,7 +78,8 @@ export function quantizeColors(imageData, options = {}) {
     k = 3,
     ignoreTransparent = true,
     ignoreWhiteBg = true,
-    maxIterations = 10
+    maxIterations = 10,
+    minClusterFraction = 0.015
   } = options;
 
   const width = imageData.width;
@@ -248,8 +249,14 @@ export function quantizeColors(imageData, options = {}) {
   // Sort by pixel count descending (largest areas first)
   clusters.sort((a, b) => b.pixelCount - a.pixelCount);
 
+  // Prune anti-aliased edge fringe noise (clusters with < minClusterFraction of foreground)
+  const filteredClusters = clusters.filter((cl, idx) => {
+    if (idx === 0) return true; // Always keep dominant cluster
+    return (cl.pixelCount / N) >= minClusterFraction;
+  });
+
   return {
-    clusters,
+    clusters: filteredClusters,
     width,
     height,
     totalForegroundPixels: N

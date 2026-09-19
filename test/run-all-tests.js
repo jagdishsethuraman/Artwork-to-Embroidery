@@ -398,6 +398,47 @@ const bgQuant = quantizeColors({ data: bgData, width: bgImgW, height: bgImgH }, 
 assert(bgQuant.clusters.length === 1, `Alpha and near-white pixels filtered out (got ${bgQuant.clusters.length} cluster)`);
 assert(bgQuant.clusters[0].threadCode.includes('Emerald'), 'Foreground correctly matched to Madeira Emerald');
 
+// G. Nested Loop & Hole Tracing Hierarchy Test
+const holeMaskW = 30;
+const holeMaskH = 30;
+const holeMask = new Uint8Array(holeMaskW * holeMaskH);
+for (let y = 3; y < 27; y++) {
+  for (let x = 3; x < 27; x++) {
+    // Cutout hole between 11 and 19
+    if (x >= 11 && x <= 19 && y >= 11 && y <= 19) continue;
+    holeMask[y * holeMaskW + x] = 1;
+  }
+}
+const holePolys = traceMaskToPolygons(holeMask, holeMaskW, holeMaskH, {
+  targetWidthMm: 60.0,
+  simplification: 0.8,
+  minAreaMm2: 2.0
+});
+assert(holePolys.length === 1, `Contour tracer isolated exactly 1 polygon for hollow shape (got ${holePolys.length})`);
+assert(holePolys[0].holes.length === 1, `Outer polygon successfully has 1 nested hole (got ${holePolys[0].holes.length})`);
+assert(!holePolys[0].containsPoint(new Point2D(0, 0)), 'Polygon with hole rejects point inside center cutout (0, 0)');
+assert(holePolys[0].containsPoint(new Point2D(-18, 0)), 'Polygon with hole accepts point inside outer body (-18, 0)');
+
+// Tatami Fill skips the hole
+const holeStitches = generateTatamiFill(holePolys[0], {
+  density: 0.5,
+  stitchLength: 3.5,
+  angle: 0,
+  underlay: false
+});
+const holePolyTest = new Polygon(holePolys[0].holes[0]);
+let stitchInHoleCount = 0;
+for (const st of holeStitches) {
+  if (st.command === StitchCommand.STITCH && holePolyTest.containsPoint(new Point2D(st.x, st.y))) {
+    // Only flag if strictly inside interior (> 0.2mm away from edge)
+    const insetHole = holePolyTest.offset(-0.2);
+    if (insetHole.containsPoint(new Point2D(st.x, st.y))) {
+      stitchInHoleCount++;
+    }
+  }
+}
+assert(stitchInHoleCount === 0, `Tatami fill cleanly jumped over cutout hole with 0 interior stitches (got ${stitchInHoleCount})`);
+
 console.log('\n=============================================');
 console.log(` RESULTS: ${passedTests} passed, ${failedTests} failed, ${totalTests} total.`);
 console.log('=============================================\n');

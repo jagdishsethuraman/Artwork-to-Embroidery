@@ -339,7 +339,7 @@ export class DigitizerEngine {
     const {
       k = 3,
       targetWidthMm = 75.0,
-      simplification = 1.2,
+      simplification = 0.8,
       minAreaMm2 = 3.0,
       defaultStitchType = StitchType.TWILL,
       clearExisting = true,

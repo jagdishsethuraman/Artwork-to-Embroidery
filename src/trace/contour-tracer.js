@@ -205,7 +205,7 @@ export function marchSquares(mask, width, height) {
 export function traceMaskToPolygons(mask, imgWidth, imgHeight, options = {}) {
   const {
     targetWidthMm = 75.0,
-    simplification = 1.2,
+    simplification = 0.8,
     minAreaMm2 = 3.0
   } = options;
 
@@ -219,14 +219,13 @@ export function traceMaskToPolygons(mask, imgWidth, imgHeight, options = {}) {
   const centerX = imgWidth / 2;
   const centerY = imgHeight / 2;
 
-  const polygons = [];
+  // 2. Simplify contours and transform into centered hoop millimeters
+  const candidateLoops = [];
 
   for (const loop of rawLoops) {
-    // 2. Simplify contour with Ramer-Douglas-Peucker
     const simplifiedLoop = simplifyPolygonLoop(loop, simplification);
     if (simplifiedLoop.length < 3) continue;
 
-    // 3. Transform pixel coordinates into centered hoop millimeters
     const mmVertices = simplifiedLoop.map(pt => {
       const xMm = (pt.x - centerX) * mmPerPx;
       const yMm = (pt.y - centerY) * mmPerPx;
@@ -236,9 +235,53 @@ export function traceMaskToPolygons(mask, imgWidth, imgHeight, options = {}) {
     const poly = new Polygon(mmVertices);
     const area = Math.abs(poly.signedArea());
 
-    // 4. Reject tiny noise fragments
+    // Filter noise fragments
     if (area >= minAreaMm2) {
+      candidateLoops.push({ poly, area, vertices: mmVertices });
+    }
+  }
+
+  if (candidateLoops.length === 0) return [];
+
+  // 3. Sort candidate loops descending by area (outer perimeters encompass holes)
+  candidateLoops.sort((a, b) => b.area - a.area);
+
+  // 4. Resolve contour hierarchy (outer boundaries vs cutout holes)
+  // Even containment depth (0, 2, ...) => Outer Polygon
+  // Odd containment depth (1, 3, ...) => Hole inside innermost enclosing outer polygon
+  const polygons = [];
+  const loopToPoly = new Map();
+
+  for (let i = 0; i < candidateLoops.length; i++) {
+    const item = candidateLoops[i];
+    const p0 = item.vertices[0];
+    const p1 = item.vertices[1] || p0;
+    const testPt = new Point2D((p0.x + p1.x) / 2, (p0.y + p1.y) / 2);
+
+    const enclosingParents = [];
+    for (let j = 0; j < i; j++) {
+      if (candidateLoops[j].poly._pointInLoop(testPt, candidateLoops[j].vertices)) {
+        enclosingParents.push(candidateLoops[j]);
+      }
+    }
+
+    const depth = enclosingParents.length;
+
+    if (depth % 2 === 0) {
+      // Outer polygon boundary
+      const poly = new Polygon(item.vertices);
       polygons.push(poly);
+      loopToPoly.set(item, poly);
+    } else {
+      // Cutout hole: attach to innermost enclosing outer polygon
+      for (let k = enclosingParents.length - 1; k >= 0; k--) {
+        const parentCandidate = enclosingParents[k];
+        const parentPoly = loopToPoly.get(parentCandidate);
+        if (parentPoly) {
+          parentPoly.addHole(item.vertices);
+          break;
+        }
+      }
     }
   }
 

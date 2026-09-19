@@ -34,6 +34,18 @@ export function generateTatamiFill(polygon, options = {}) {
         colorIndex
       });
       stitches.push(...underlayStitches);
+
+      // Also trace underlay around cutout holes
+      for (const hole of insetPoly.holes) {
+        if (hole.length >= 3) {
+          const holeLoop = [...hole, hole[0]];
+          const holeUnderlay = generateRunningStitch(holeLoop, {
+            stitchLength: 2.5,
+            colorIndex
+          });
+          stitches.push(...holeUnderlay);
+        }
+      }
     }
   }
 
@@ -47,7 +59,7 @@ export function generateTatamiFill(polygon, options = {}) {
   const yMax = bounds.maxY;
   const rowCount = Math.ceil((yMax - yMin) / density);
 
-  let isFirstStitch = true;
+  let lastPt = stitches.length > 0 ? stitches[stitches.length - 1] : null;
 
   for (let k = 0; k < rowCount; k++) {
     const scanY = yMin + (k + 0.5) * density;
@@ -66,40 +78,42 @@ export function generateTatamiFill(polygon, options = {}) {
       const segLen = Math.abs(segEnd - segStart);
       if (segLen < 1e-4) continue;
 
+      const origStart = new Point2D(segStart, scanY).rotate(angleRad);
+      if (!lastPt) {
+        stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.JUMP, colorIndex));
+      } else {
+        const dist = lastPt.distance(origStart);
+        // If moving across a hole or deep bay (> 1.6 * density), emit JUMP travel
+        if (dist > density * 1.6) {
+          stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.JUMP, colorIndex));
+        } else {
+          stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.STITCH, colorIndex));
+        }
+      }
+      lastPt = origStart;
+
       // Stagger needle penetrations based on twill fraction
       const rowOffset = ((k * stagger) % 1) * stitchLength;
       const stepCount = Math.max(1, Math.ceil(segLen / stitchLength));
       const stepSize = segLen / stepCount;
 
-      const rowPts = [];
-      // Start of segment
-      rowPts.push(new Point2D(segStart, scanY));
-
-      // Intermediate stitches with stagger
-      for (let s = 1; s < stepCount; s++) {
+      // Intermediate stitches and end of segment are all normal STITCH
+      for (let s = 1; s <= stepCount; s++) {
         let xPos = reverseRow
           ? segStart - s * stepSize + (rowOffset % stepSize)
           : segStart + s * stepSize + (rowOffset % stepSize);
 
-        // Ensure clamped inside segment
-        if (reverseRow) {
+        if (s === stepCount) {
+          xPos = segEnd;
+        } else if (reverseRow) {
           xPos = Math.max(segEnd, Math.min(segStart, xPos));
         } else {
           xPos = Math.max(segStart, Math.min(segEnd, xPos));
         }
-        rowPts.push(new Point2D(xPos, scanY));
-      }
 
-      // End of segment
-      rowPts.push(new Point2D(segEnd, scanY));
-
-      // Add to stitch stream
-      for (let pIdx = 0; pIdx < rowPts.length; pIdx++) {
-        // Rotate point back to original space
-        const originalPt = rowPts[pIdx].rotate(angleRad);
-        const cmd = isFirstStitch ? StitchCommand.JUMP : StitchCommand.STITCH;
-        stitches.push(new StitchPoint(originalPt.x, originalPt.y, cmd, colorIndex));
-        isFirstStitch = false;
+        const pt = new Point2D(xPos, scanY).rotate(angleRad);
+        stitches.push(new StitchPoint(pt.x, pt.y, StitchCommand.STITCH, colorIndex));
+        lastPt = pt;
       }
     }
   }

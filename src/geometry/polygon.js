@@ -160,7 +160,19 @@ export class Polygon {
       newVertices.push(pCurr.add(bisector.scale(clampedMiter)));
     }
 
-    return new Polygon(newVertices);
+    const newPoly = new Polygon(newVertices);
+    // For underlay inset (delta < 0), hole boundary moves outward into hole (-delta)
+    for (const hole of this.holes) {
+      if (hole.length >= 3) {
+        const holePoly = new Polygon(hole);
+        const offsetHole = holePoly.offset(-delta);
+        if (offsetHole && offsetHole.vertices.length >= 3) {
+          newPoly.addHole(offsetHole.vertices);
+        }
+      }
+    }
+
+    return newPoly;
   }
 }
 
