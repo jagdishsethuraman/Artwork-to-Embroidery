@@ -142,12 +142,25 @@ export function writeDst(stitches, label = 'EMBROID') {
       continue;
     }
 
+    if (pt.command === StitchCommand.TRIM) {
+      // Tajima standard hardware trim: exactly 3 zero-length JUMP commands
+      records.push(encodeDstRecord(0, 0, StitchCommand.JUMP));
+      records.push(encodeDstRecord(0, 0, StitchCommand.JUMP));
+      records.push(encodeDstRecord(0, 0, StitchCommand.JUMP));
+      prevX = targetX;
+      prevY = targetY;
+      continue;
+    }
+
     let dx = targetX - prevX;
     let dy = targetY - prevY;
+    const dist = Math.hypot(dx, dy);
 
-    if (pt.command === StitchCommand.JUMP || pt.command === StitchCommand.TRIM) {
+    if (pt.command === StitchCommand.JUMP) {
+      if (dist === 0 && i > 0) continue; // Skip redundant intermediate zero-distance jumps
+
+
       // Decompose large travel jump into intermediate JUMP steps <= 11.0mm (Euclidean <= 110, components <= 121)
-      const dist = Math.hypot(dx, dy);
       if (dist > 110 || Math.abs(dx) > MAX_JUMP_DELTA || Math.abs(dy) > MAX_JUMP_DELTA) {
         const steps = Math.ceil(Math.max(dist / 100, Math.abs(dx) / 110, Math.abs(dy) / 110));
         const startX = prevX;
@@ -163,12 +176,18 @@ export function writeDst(stitches, label = 'EMBROID') {
         }
       } else {
         records.push(encodeDstRecord(dx, dy, StitchCommand.JUMP));
+        prevX = targetX;
+        prevY = targetY;
       }
     } else {
       // Standard STITCH command
+      // Commercial micro-stitch elimination: ignore duplicate or < 0.35mm needle penetrations
+      if (dist < 3.5) {
+        continue;
+      }
+
       // Commercial limit: sewing stitches must not exceed MAX_SEW_DELTA (70 = 7.0mm).
       // Longer stitches are split into intermediate needle penetrations along the stitch vector.
-      const dist = Math.hypot(dx, dy);
       if (dist > MAX_SEW_DELTA) {
         const steps = Math.ceil(dist / 60); // Subdivide into <= 6.0mm safe segments
         const startX = prevX;
@@ -185,11 +204,11 @@ export function writeDst(stitches, label = 'EMBROID') {
       } else {
         // Fits safely inside commercial sewing tolerance
         records.push(encodeDstRecord(dx, dy, StitchCommand.STITCH));
+        prevX = targetX;
+        prevY = targetY;
       }
     }
 
-    prevX = targetX;
-    prevY = targetY;
 
     // Track bounds
     if (prevX < minX) minX = prevX;

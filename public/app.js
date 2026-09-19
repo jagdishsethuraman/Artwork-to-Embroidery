@@ -12,8 +12,10 @@ import {
   quantizeColors,
   matchThreadColor,
   MADEIRA_CATALOG,
-  traceMaskToPolygons
+  traceMaskToPolygons,
+  isStickerBorder
 } from '../src/engine.js';
+
 
 // Setup Engine
 const engine = new DigitizerEngine();
@@ -306,6 +308,11 @@ function updateLayersUI() {
       render();
     };
 
+    const islandCount = layer.getPolygons ? layer.getPolygons().length : 1;
+    const islandBadge = islandCount > 1
+      ? `<span class="badge" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;margin-right:6px;font-size:10px;">${islandCount} islands</span>`
+      : '';
+
     const colorDot = `<span class="color-badge" style="background:${layer.hex};"></span>`;
     card.innerHTML = `
       <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
@@ -316,11 +323,15 @@ function updateLayersUI() {
             <div style="font-size:11px;color:#94a3b8;">${layer.threadCode}</div>
           </div>
         </div>
-        <span class="badge">${layer.stitchType.toUpperCase()}</span>
+        <div style="display:flex;align-items:center;">
+          ${islandBadge}
+          <span class="badge">${layer.stitchType.toUpperCase()}</span>
+        </div>
       </div>
     `;
     container.appendChild(card);
   });
+
 
   syncParamInputs();
 }
@@ -1197,15 +1208,21 @@ function renderImportPreview() {
   let totalPolygons = 0;
   const allClusterPolys = [];
 
+  const filterBorder = document.getElementById('importFilterBorder') ? document.getElementById('importFilterBorder').checked : true;
+
   for (const cluster of quantResult.clusters) {
-    const polys = traceMaskToPolygons(cluster.mask, w, h, {
+    const rawPolys = traceMaskToPolygons(cluster.mask, w, h, {
       targetWidthMm,
       simplification,
       minAreaMm2: 2.0
     });
+    const polys = filterBorder
+      ? rawPolys.filter(p => !isStickerBorder(p, targetWidthMm))
+      : rawPolys;
     totalPolygons += polys.length;
     allClusterPolys.push({ cluster, polys });
   }
+
 
   const vScale = (vecCanvas.width - 24) / Math.max(targetWidthMm, targetHeightMm);
   const vCenterX = vecCanvas.width / 2;
@@ -1364,10 +1381,16 @@ if (importModal) {
 }
 
 // Live sliders
-['importKInput', 'importWidthInput', 'importSimplificationInput', 'importStitchType', 'importIgnoreWhite', 'importIgnoreAlpha'].forEach(id => {
+['importKInput', 'importWidthInput', 'importSimplificationInput', 'importAngleInput', 'importStitchType', 'importIgnoreWhite', 'importIgnoreAlpha', 'importFilterBorder'].forEach(id => {
   const el = document.getElementById(id);
   if (el) {
-    el.addEventListener('input', renderImportPreview);
+    el.addEventListener('input', () => {
+      if (id === 'importAngleInput') {
+        const valEl = document.getElementById('importAngleVal');
+        if (valEl) valEl.innerText = `${el.value}°`;
+      }
+      renderImportPreview();
+    });
     el.addEventListener('change', renderImportPreview);
   }
 });
@@ -1381,6 +1404,8 @@ document.getElementById('btnConvertAndGenerate')?.addEventListener('click', () =
   const targetWidthMm = parseFloat(document.getElementById('importWidthInput').value);
   const simplification = parseFloat(document.getElementById('importSimplificationInput').value);
   const defaultStitchType = document.getElementById('importStitchType').value;
+  const defaultAngle = parseFloat(document.getElementById('importAngleInput')?.value || 45);
+  const filterStickerBorder = document.getElementById('importFilterBorder') ? document.getElementById('importFilterBorder').checked : true;
   const ignoreWhiteBg = document.getElementById('importIgnoreWhite').checked;
   const ignoreTransparent = document.getElementById('importIgnoreAlpha').checked;
 
@@ -1390,6 +1415,8 @@ document.getElementById('btnConvertAndGenerate')?.addEventListener('click', () =
     simplification,
     minAreaMm2: 2.5,
     defaultStitchType,
+    defaultAngle,
+    filterStickerBorder,
     clearExisting: true,
     ignoreWhiteBg,
     ignoreTransparent
@@ -1404,6 +1431,7 @@ document.getElementById('btnConvertAndGenerate')?.addEventListener('click', () =
 
   closeImportModal();
 });
+
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {

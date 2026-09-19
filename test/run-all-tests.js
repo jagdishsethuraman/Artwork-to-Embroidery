@@ -11,7 +11,8 @@ import { generateTatamiFill } from '../src/stitches/tatami.js';
 import { StitchCommand, StitchPoint, StitchType } from '../src/stitches/types.js';
 import { writeDst, readDst, encodeDstRecord, decodeDstRecord } from '../src/formats/dst.js';
 import { writeExp } from '../src/formats/exp.js';
-import { DigitizerEngine, quantizeColors, traceMaskToPolygons, ramerDouglasPeucker } from '../src/engine.js';
+import { DigitizerEngine, quantizeColors, traceMaskToPolygons, ramerDouglasPeucker, isStickerBorder } from '../src/engine.js';
+
 import { parseSvgPath } from '../src/svg/svg-parser.js';
 
 let totalTests = 0;
@@ -472,6 +473,119 @@ for (let i = 1; i < uStitches.length; i++) {
 }
 assert(uBayJumps <= 1, `Monotonic branch partitioning reduced cross-bay jumps to <= 1 (got ${uBayJumps})`);
 assert(uStitches.length > 200, `U-shape tatami fill generated comprehensive stitches (got ${uStitches.length})`);
+
+// -------------------------------------------------------------
+// 7. MULTI-POLYGON COLOR CHANNELS, HARMONIOUS GRAIN & CLEAN DST
+// -------------------------------------------------------------
+console.log('\n[7. Multi-Polygon Color Channels, Harmonious Grain & Clean DST]');
+
+// A. Island Consolidation & Multi-Polygon Handling
+const island1 = new Polygon([
+  new Point2D(0, 0), new Point2D(10, 0), new Point2D(10, 10), new Point2D(0, 10)
+]);
+const island2 = new Polygon([
+  new Point2D(25, 0), new Point2D(35, 0), new Point2D(35, 10), new Point2D(25, 10)
+]);
+const island3 = new Polygon([
+  new Point2D(12, 20), new Point2D(22, 20), new Point2D(22, 30), new Point2D(12, 30)
+]);
+
+const multiEngine = new DigitizerEngine();
+const multiLayer = multiEngine.addLayer({
+  id: 'multi-island-layer',
+  name: 'Consolidated White Spool',
+  hex: '#f8fafc',
+  stitchType: StitchType.TWILL,
+  params: { density: 0.4, stitchLength: 3.5, stagger: 0.25, angle: 45, underlay: false }
+});
+multiLayer.geometry = [island1, island2, island3];
+
+assert(multiLayer.getPolygons().length === 3, `ColorLayer consolidated 3 disconnected islands into 1 spool channel`);
+
+const multiStitches = multiEngine.compileStitches();
+const multiStats = multiEngine.getDesignStats();
+assert(multiStats.colorChanges === 0, `Multi-island layer executes with exactly 0 internal color stops (got ${multiStats.colorChanges})`);
+
+// B. Commercial Hardware Trims on Inter-Island Travels > 5mm
+let hardwareTrims = 0;
+let interIslandTieOffs = 0;
+for (const s of multiStitches) {
+  if (s.command === StitchCommand.TRIM) hardwareTrims++;
+}
+assert(hardwareTrims >= 3, `Inter-island travels > 5.0mm injected hardware TRIMs (got ${hardwareTrims})`);
+
+// C. Zero Micro-Stitches & Commercial Limits on Exported DST
+const multiDst = multiEngine.exportDst('MULTI_TEST');
+const { stitches: decodedMulti } = readDst(multiDst.buffer);
+
+let multiMicroCount = 0;
+let multiLongSewCount = 0;
+for (let i = 1; i < decodedMulti.length; i++) {
+  const prev = decodedMulti[i - 1];
+  const curr = decodedMulti[i];
+  const dist = curr.distance(prev);
+  if (curr.command === StitchCommand.STITCH) {
+    if (dist < 0.35 && dist > 1e-4) multiMicroCount++;
+    if (dist > 7.0) multiLongSewCount++;
+  }
+}
+assert(multiMicroCount === 0, `Exported multi-island DST has zero micro-stitches < 0.35mm (got ${multiMicroCount})`);
+assert(multiLongSewCount === 0, `Exported multi-island DST has zero sewing stitches > 7.0mm (got ${multiLongSewCount})`);
+
+// D. Die-Cut Sticker Border Detection
+const stickerBorderPoly = new Polygon([
+  new Point2D(-35, -35), new Point2D(35, -35), new Point2D(35, 35), new Point2D(-35, 35)
+]);
+stickerBorderPoly.addHole([
+  new Point2D(-32, -32), new Point2D(32, -32), new Point2D(32, 32), new Point2D(-32, 32)
+]);
+const solidEmblemPoly = new Polygon([
+  new Point2D(-35, -35), new Point2D(35, -35), new Point2D(35, 35), new Point2D(-35, 35)
+]);
+
+assert(isStickerBorder(stickerBorderPoly, 75.0) === true, `isStickerBorder accurately identified thin outer sticker shell`);
+assert(isStickerBorder(solidEmblemPoly, 75.0) === false, `isStickerBorder rejected solid filled graphics`);
+
+// E. Multi-Island Color Clustering Ingestion (K=3)
+const testW = 40;
+const testH = 40;
+const testPixels = new Uint8Array(testW * testH * 4);
+// Background: White
+testPixels.fill(255);
+// Cluster 1 (Red): Top-left square
+for (let y = 5; y < 15; y++) {
+  for (let x = 5; x < 15; x++) {
+    const idx = (y * testW + x) * 4;
+    testPixels[idx] = 220; testPixels[idx+1] = 20; testPixels[idx+2] = 20;
+  }
+}
+// Cluster 1 (Red): Disconnected bottom-right square (should consolidate into same layer!)
+for (let y = 25; y < 35; y++) {
+  for (let x = 25; x < 35; x++) {
+    const idx = (y * testW + x) * 4;
+    testPixels[idx] = 220; testPixels[idx+1] = 20; testPixels[idx+2] = 20;
+  }
+}
+// Cluster 2 (Blue): Central diamond
+for (let y = 15; y < 25; y++) {
+  for (let x = 15; x < 25; x++) {
+    const idx = (y * testW + x) * 4;
+    testPixels[idx] = 30; testPixels[idx+1] = 60; testPixels[idx+2] = 220;
+  }
+}
+
+const clusterEngine = new DigitizerEngine();
+const clusterLayers = clusterEngine.importImage(
+  { data: testPixels, width: testW, height: testH },
+  { k: 2, targetWidthMm: 50.0, defaultAngle: 45, filterStickerBorder: true }
+);
+
+assert(clusterLayers.length === 2, `Image import consolidated disconnected patches into exactly 2 ColorLayers (got ${clusterLayers.length})`);
+const redLayer = clusterLayers.find(l => l.getPolygons().length === 2);
+assert(redLayer !== undefined, `Disconnected red patches successfully combined into 1 layer with 2 polygons`);
+const clusterStats = clusterEngine.getDesignStats();
+assert(clusterStats.colorChanges === 1, `Compiled 2-cluster design has exactly 1 machine color stop (got ${clusterStats.colorChanges})`);
+
 
 console.log('\n=============================================');
 console.log(` RESULTS: ${passedTests} passed, ${failedTests} failed, ${totalTests} total.`);

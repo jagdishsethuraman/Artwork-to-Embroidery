@@ -918,6 +918,14 @@
           </div>
 
           <div class="form-group" style="padding:0;">
+            <div class="form-label">
+              <span>Grain Flow Angle</span>
+              <span class="form-value" id="importAngleVal">45°</span>
+            </div>
+            <input type="range" id="importAngleInput" min="0" max="180" step="5" value="45" />
+          </div>
+
+          <div class="form-group" style="padding:0;">
             <label class="form-label">Default Stitch Weave</label>
             <select id="importStitchType" style="padding:5px 8px;font-size:12px;">
               <option value="twill" selected>Twill Weave (Diagonal 0.25)</option>
@@ -935,7 +943,12 @@
               <input type="checkbox" id="importIgnoreAlpha" checked style="accent-color:var(--accent-blue);" />
               <span>Ignore Transparent Pixels</span>
             </label>
+            <label style="font-size:11.5px;color:var(--text-primary);display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="importFilterBorder" checked style="accent-color:var(--accent-blue);" />
+              <span>Filter Outer Sticker Border</span>
+            </label>
           </div>
+
 
           <div class="form-group" style="padding:0;display:flex;flex-direction:column;justify-content:center;">
             <div style="font-size:11px;color:var(--text-muted);">

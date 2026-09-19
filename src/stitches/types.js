@@ -60,6 +60,19 @@ export class ColorLayer {
       stagger: 0.25,      // Twill stagger factor (0.25 = 4-step)
       ...params
     };
-    this.geometry = null; // Polygon or Rails or Polyline
+    this.geometry = null; // Polygon, Polygon[], Rails, or Polyline
+  }
+
+  getPolygons() {
+    if (!this.geometry) return [];
+    if (Array.isArray(this.geometry)) {
+      if (this.geometry.length > 0 && (this.geometry[0].vertices || typeof this.geometry[0].signedArea === 'function')) {
+        return this.geometry;
+      }
+    }
+    if (this.geometry.vertices || typeof this.geometry.signedArea === 'function') {
+      return [this.geometry];
+    }
+    return [];
   }
 }

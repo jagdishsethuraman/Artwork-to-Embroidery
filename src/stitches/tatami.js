@@ -225,7 +225,7 @@ export function generateTatamiFill(polygon, options = {}) {
       const segStart = reverseRow ? seg.x2 : seg.x1;
       const segEnd = reverseRow ? seg.x1 : seg.x2;
       const segLen = Math.abs(segEnd - segStart);
-      if (segLen < 1e-4) continue;
+      if (segLen < 0.40) continue;
 
       const origStart = new Point2D(segStart, scanY).rotate(angleRad);
       if (!lastPt) {
@@ -235,7 +235,7 @@ export function generateTatamiFill(polygon, options = {}) {
         // If moving to a new branch across empty space (> 1.6 * density), emit JUMP travel
         if (dist > density * 1.6) {
           stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.JUMP, colorIndex));
-        } else {
+        } else if (dist >= 0.35) {
           stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.STITCH, colorIndex));
         }
       }
@@ -260,10 +260,16 @@ export function generateTatamiFill(polygon, options = {}) {
           xPos = Math.max(segStart, Math.min(segEnd, xPos));
         }
 
+        // Suppress intermediate stitches within 0.40mm of segment ends to prevent micro-stitches
+        if (s < stepCount && (Math.abs(xPos - segEnd) < 0.40 || Math.abs(xPos - segStart) < 0.40)) {
+          continue;
+        }
+
         const pt = new Point2D(xPos, scanY).rotate(angleRad);
         stitches.push(new StitchPoint(pt.x, pt.y, StitchCommand.STITCH, colorIndex));
         lastPt = pt;
       }
+
     }
   }
 

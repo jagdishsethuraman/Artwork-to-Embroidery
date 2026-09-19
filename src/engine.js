@@ -33,8 +33,13 @@ export {
   MADEIRA_CATALOG,
   traceMaskToPolygons,
   marchSquares,
-  ramerDouglasPeucker
+  ramerDouglasPeucker,
+  isStickerBorder,
+  sequencePolygons,
+  createTieIn,
+  createTieOff
 };
+
 
 /**
  * Adapts geometry representation to match the requirements of the stitch weave type.
@@ -42,6 +47,14 @@ export {
  */
 export function convertGeometry(geom, targetType) {
   if (!geom) return null;
+
+  // Multi-polygon support (Polygon[])
+  if (Array.isArray(geom) && geom.length > 0 && (geom[0] instanceof Polygon || geom[0].vertices)) {
+    if (targetType === StitchType.TATAMI || targetType === StitchType.TWILL) {
+      return geom;
+    }
+    return geom.map(p => convertGeometry(p, targetType));
+  }
 
   // 1. Target is SATIN (requires { rail1: Point2D[], rail2: Point2D[] })
   if (targetType === StitchType.SATIN) {
@@ -132,6 +145,89 @@ export function convertGeometry(geom, targetType) {
 }
 
 /**
+ * Detects whether a polygon is a die-cut sticker frame (outer shell border).
+ * Sticker frames span >= 85% of target width and have high hole area ratio (> 60%).
+ */
+function isStickerBorder(poly, targetWidthMm) {
+  if (!poly) return false;
+  const b = poly.bounds();
+  const outerArea = Math.abs(poly.signedArea());
+  let holeArea = 0;
+  if (poly.holes && poly.holes.length > 0) {
+    for (const h of poly.holes) {
+      let a = 0;
+      for (let k = 0; k < h.length; k++) {
+        const j = (k + 1) % h.length;
+        a += h[k].cross(h[j]);
+      }
+      holeArea += Math.abs(a) / 2;
+    }
+  }
+  return b.width >= targetWidthMm * 0.85 && outerArea > 0 && (holeArea / outerArea) > 0.60;
+}
+
+function sequencePolygons(polys, startPt) {
+  if (!polys || polys.length <= 1) return polys || [];
+  const unvisited = [...polys];
+  const ordered = [];
+  let curr = startPt || null;
+
+  while (unvisited.length > 0) {
+    if (!curr) {
+      unvisited.sort((a, b) => {
+        const bA = a.bounds();
+        const bB = b.bounds();
+        return (bA.minY - bB.minY) || (bA.minX - bB.minX);
+      });
+      const first = unvisited.shift();
+      ordered.push(first);
+      const b = first.bounds();
+      curr = new Point2D((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2);
+    } else {
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < unvisited.length; i++) {
+        const b = unvisited[i].bounds();
+        const center = new Point2D((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2);
+        const d = curr.distance(center);
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = i;
+        }
+      }
+      const chosen = unvisited.splice(bestIdx, 1)[0];
+      ordered.push(chosen);
+      const b = chosen.bounds();
+      curr = new Point2D((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2);
+    }
+  }
+  return ordered;
+}
+
+function createTieIn(x, y, colorIdx) {
+  return [
+    new StitchPoint(x, y, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x + 0.42, y, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x - 0.42, y, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x, y + 0.42, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x, y - 0.42, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x, y, StitchCommand.STITCH, colorIdx)
+  ];
+}
+
+function createTieOff(x, y, colorIdx) {
+  return [
+    new StitchPoint(x, y, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x + 0.42, y, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x - 0.42, y, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x, y + 0.42, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x, y - 0.42, StitchCommand.STITCH, colorIdx),
+    new StitchPoint(x, y, StitchCommand.STITCH, colorIdx)
+  ];
+}
+
+
+/**
  * Main Embroidery Digitizer Engine
  */
 export class DigitizerEngine {
@@ -167,18 +263,17 @@ export class DigitizerEngine {
 
   /**
    * Compiles all active layers into a single sequence of machine stitches.
-   * Handles color changes, tie-ins, and tie-offs.
+   * Handles multi-polygon color spools, nearest-neighbor sequencing,
+   * inter-island tie-off + TRIM + tie-in on travels > 5mm, and thread color stops.
    * @returns {StitchPoint[]}
    */
   compileStitches() {
     const allStitches = [];
+    let lastNeedlePos = null;
 
     for (let lIdx = 0; lIdx < this.layers.length; lIdx++) {
       const layer = this.layers[lIdx];
       if (!layer.geometry) continue;
-
-      // Adapt geometry dynamically to match current stitch type
-      const geom = convertGeometry(layer.geometry, layer.stitchType) || layer.geometry;
 
       // Add color change command if transitioning to a new layer
       if (allStitches.length > 0) {
@@ -186,48 +281,105 @@ export class DigitizerEngine {
         allStitches.push(new StitchPoint(lastStitch.x, lastStitch.y, StitchCommand.COLOR_CHANGE, lIdx));
       }
 
-      let layerStitches = [];
+      const polys = layer.getPolygons();
 
-      switch (layer.stitchType) {
-        case StitchType.RUNNING:
-        case StitchType.BEAN:
-          if (Array.isArray(geom)) {
-            layerStitches = generateRunningStitch(geom, {
-              ...layer.params,
-              bean: layer.stitchType === StitchType.BEAN,
-              colorIndex: lIdx
-            });
+      if (polys.length > 0 && (layer.stitchType === StitchType.TATAMI || layer.stitchType === StitchType.TWILL)) {
+        // Multi-island fill: sequence polygons with nearest-neighbor
+        const orderedPolys = sequencePolygons(polys, lastNeedlePos);
+
+        for (let pIdx = 0; pIdx < orderedPolys.length; pIdx++) {
+          const poly = orderedPolys[pIdx];
+          const polyStitches = generateTatamiFill(poly, {
+            ...layer.params,
+            stagger: layer.stitchType === StitchType.TWILL ? 0.25 : (layer.params.stagger || 0.33),
+            colorIndex: lIdx
+          });
+          if (polyStitches.length < 2) continue;
+
+          const firstPt = polyStitches[0];
+          const lastPt = polyStitches[polyStitches.length - 1];
+
+          if (lastNeedlePos) {
+            const travelDist = lastNeedlePos.distance(new Point2D(firstPt.x, firstPt.y));
+            if (travelDist > 5.0) {
+              // Inter-island travel > 5.0mm: tie-off, TRIM, jump travel, tie-in
+              const tieOffColor = (lIdx > 0 && pIdx === 0) ? lIdx - 1 : lIdx;
+              allStitches.push(...createTieOff(lastNeedlePos.x, lastNeedlePos.y, tieOffColor));
+              allStitches.push(new StitchPoint(lastNeedlePos.x, lastNeedlePos.y, StitchCommand.TRIM, lIdx));
+              allStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+              allStitches.push(...createTieIn(firstPt.x, firstPt.y, lIdx));
+            } else {
+              // Short travel <= 5.0mm: jump travel without trimming
+              allStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+            }
+          } else {
+            // First island of entire design
+            allStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+            allStitches.push(...createTieIn(firstPt.x, firstPt.y, lIdx));
           }
-          break;
 
-        case StitchType.SATIN:
-          if (geom && geom.rail1 && geom.rail2) {
-            layerStitches = generateSatinColumn(geom.rail1, geom.rail2, {
-              ...layer.params,
-              colorIndex: lIdx
-            });
+          // Main body stitches (skip leading jump since already positioned)
+          for (let i = 1; i < polyStitches.length; i++) {
+            allStitches.push(polyStitches[i]);
           }
-          break;
 
-        case StitchType.TATAMI:
-        case StitchType.TWILL:
-        default:
-          if (geom instanceof Polygon) {
-            layerStitches = generateTatamiFill(geom, {
-              ...layer.params,
-              stagger: layer.stitchType === StitchType.TWILL ? 0.25 : (layer.params.stagger || 0.33),
-              colorIndex: lIdx
-            });
+          lastNeedlePos = new Point2D(lastPt.x, lastPt.y);
+
+          // End of layer: tie-off and hardware TRIM
+          if (pIdx === orderedPolys.length - 1) {
+            allStitches.push(...createTieOff(lastPt.x, lastPt.y, lIdx));
+            allStitches.push(new StitchPoint(lastPt.x, lastPt.y, StitchCommand.TRIM, lIdx));
           }
-          break;
-      }
-
-      // Add lock stitches (tie-in and tie-off)
-      if (layerStitches.length > 2) {
-        const withLocks = this._addLockStitches(layerStitches, lIdx);
-        allStitches.push(...withLocks);
+        }
       } else {
-        allStitches.push(...layerStitches);
+        // Single geometry (Rails, Polyline, or Single Polygon)
+        const geom = convertGeometry(layer.geometry, layer.stitchType) || layer.geometry;
+        let layerStitches = [];
+
+        switch (layer.stitchType) {
+          case StitchType.RUNNING:
+          case StitchType.BEAN:
+            if (Array.isArray(geom)) {
+              layerStitches = generateRunningStitch(geom, {
+                ...layer.params,
+                bean: layer.stitchType === StitchType.BEAN,
+                colorIndex: lIdx
+              });
+            }
+            break;
+
+          case StitchType.SATIN:
+            if (geom && geom.rail1 && geom.rail2) {
+              layerStitches = generateSatinColumn(geom.rail1, geom.rail2, {
+                ...layer.params,
+                colorIndex: lIdx
+              });
+            }
+            break;
+
+          case StitchType.TATAMI:
+          case StitchType.TWILL:
+          default:
+            if (geom instanceof Polygon) {
+              layerStitches = generateTatamiFill(geom, {
+                ...layer.params,
+                stagger: layer.stitchType === StitchType.TWILL ? 0.25 : (layer.params.stagger || 0.33),
+                colorIndex: lIdx
+              });
+            }
+            break;
+        }
+
+        if (layerStitches.length > 2) {
+          const withLocks = this._addLockStitches(layerStitches, lIdx);
+          allStitches.push(...withLocks);
+          const last = withLocks[withLocks.length - 1];
+          lastNeedlePos = new Point2D(last.x, last.y);
+        } else if (layerStitches.length > 0) {
+          allStitches.push(...layerStitches);
+          const last = layerStitches[layerStitches.length - 1];
+          lastNeedlePos = new Point2D(last.x, last.y);
+        }
       }
     }
 
@@ -236,7 +388,7 @@ export class DigitizerEngine {
 
   /**
    * Adds canonical commercial tie-in and tie-off lock stitches (star cross pattern)
-   * and Tajima 3-jump trim sequence to prevent thread unravelling.
+   * and Tajima hardware TRIM to prevent thread unravelling.
    */
   _addLockStitches(stitches, colorIdx) {
     if (stitches.length < 2) return stitches;
@@ -245,16 +397,10 @@ export class DigitizerEngine {
     const first = stitches[0];
     result.push(first); // JUMP to start point
 
-    // Canonical 4-point star tie-in cross at start (0.35mm arms)
-    // Standard commercial lock pattern recognized by Wilcom / EM Digitizer / Tajima Pulse
+    // Canonical 4-point star tie-in cross at start (0.42mm arms)
     const sx = first.x;
     const sy = first.y;
-    result.push(new StitchPoint(sx, sy, StitchCommand.STITCH, colorIdx)); // initial needle penetration
-    result.push(new StitchPoint(sx + 0.35, sy, StitchCommand.STITCH, colorIdx));
-    result.push(new StitchPoint(sx - 0.35, sy, StitchCommand.STITCH, colorIdx));
-    result.push(new StitchPoint(sx, sy + 0.35, StitchCommand.STITCH, colorIdx));
-    result.push(new StitchPoint(sx, sy - 0.35, StitchCommand.STITCH, colorIdx));
-    result.push(new StitchPoint(sx, sy, StitchCommand.STITCH, colorIdx)); // anchor center
+    result.push(...createTieIn(sx, sy, colorIdx));
 
     // Middle stitches (filter out redundant 0-distance initial stitch if present)
     for (let i = 1; i < stitches.length - 1; i++) {
@@ -265,20 +411,14 @@ export class DigitizerEngine {
       result.push(stitches[i]);
     }
 
-    // Canonical tie-off lock stitches before end of block (0.30mm arms)
+    // Canonical tie-off lock stitches before end of block (0.42mm arms)
     const last = stitches[stitches.length - 1];
     const lx = last.x;
     const ly = last.y;
-    result.push(new StitchPoint(lx, ly, StitchCommand.STITCH, colorIdx));
-    result.push(new StitchPoint(lx + 0.3, ly, StitchCommand.STITCH, colorIdx));
-    result.push(new StitchPoint(lx - 0.3, ly, StitchCommand.STITCH, colorIdx));
-    result.push(new StitchPoint(lx, ly + 0.3, StitchCommand.STITCH, colorIdx));
-    result.push(new StitchPoint(lx, ly, StitchCommand.STITCH, colorIdx));
+    result.push(...createTieOff(lx, ly, colorIdx));
 
-    // Tajima 3-Jump Trim Sequence (hardware trigger for thread trimmer motor)
-    result.push(new StitchPoint(lx, ly, StitchCommand.JUMP, colorIdx));
-    result.push(new StitchPoint(lx, ly, StitchCommand.JUMP, colorIdx));
-    result.push(new StitchPoint(lx, ly, StitchCommand.JUMP, colorIdx));
+    // Tajima hardware TRIM command
+    result.push(new StitchPoint(lx, ly, StitchCommand.TRIM, colorIdx));
 
     return result;
   }
@@ -331,6 +471,8 @@ export class DigitizerEngine {
 
   /**
    * Traces a raster image into discrete color layers and registers them with the engine.
+   * Consolidates disconnected islands into single ColorLayer spool channels,
+   * eliminates outer die-cut sticker frames, and applies unified grain flow.
    * @param {ImageData|{data: Uint8Array|number[], width: number, height: number}} imageData
    * @param {Object} options
    * @returns {ColorLayer[]}
@@ -342,6 +484,8 @@ export class DigitizerEngine {
       simplification = 0.8,
       minAreaMm2 = 3.0,
       defaultStitchType = StitchType.TWILL,
+      defaultAngle = 45,
+      filterStickerBorder = true,
       clearExisting = true,
       ignoreTransparent = true,
       ignoreWhiteBg = true
@@ -358,7 +502,6 @@ export class DigitizerEngine {
     });
     const newLayers = [];
 
-    let angleCounter = 0;
     for (const cluster of clusters) {
       const polygons = traceMaskToPolygons(cluster.mask, width, height, {
         targetWidthMm,
@@ -368,31 +511,33 @@ export class DigitizerEngine {
 
       if (polygons.length === 0) continue;
 
-      for (let pIdx = 0; pIdx < polygons.length; pIdx++) {
-        const poly = polygons[pIdx];
-        const layerId = `trace-${cluster.colorIndex}-${pIdx}`;
-        const layerName = polygons.length > 1
-          ? `${cluster.threadCode.split('(')[0].trim()} Pt.${pIdx + 1}`
-          : cluster.threadCode.split('(')[0].trim();
+      // Filter out die-cut sticker frames if enabled
+      const validPolys = filterStickerBorder
+        ? polygons.filter(p => !isStickerBorder(p, targetWidthMm))
+        : polygons;
 
-        const layer = this.addLayer({
-          id: layerId,
-          name: layerName,
-          hex: cluster.hex,
-          threadCode: cluster.threadCode,
-          stitchType: defaultStitchType,
-          params: {
-            density: 0.4,
-            stitchLength: 3.5,
-            stagger: 0.25,
-            angle: (angleCounter * 35) % 180,
-            underlay: true
-          }
-        });
-        layer.geometry = poly;
-        newLayers.push(layer);
-      }
-      angleCounter++;
+      if (validPolys.length === 0) continue;
+
+      // Consolidate all islands of this cluster into a single ColorLayer spool channel
+      const layerId = `layer-${cluster.colorIndex}`;
+      const layerName = cluster.threadCode.split('(')[0].trim();
+
+      const layer = this.addLayer({
+        id: layerId,
+        name: layerName,
+        hex: cluster.hex,
+        threadCode: cluster.threadCode,
+        stitchType: defaultStitchType,
+        params: {
+          density: 0.4,
+          stitchLength: 3.5,
+          stagger: 0.25,
+          angle: defaultAngle,
+          underlay: true
+        }
+      });
+      layer.geometry = validPolys.length === 1 ? validPolys[0] : validPolys;
+      newLayers.push(layer);
     }
 
     if (this.layers.length > 0) {
@@ -402,3 +547,4 @@ export class DigitizerEngine {
     return newLayers;
   }
 }
+
