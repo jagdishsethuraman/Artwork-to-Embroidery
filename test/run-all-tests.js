@@ -1,0 +1,290 @@
+/**
+ * Comprehensive Automated Test Suite for AI Embroidery Digitizer Engine
+ */
+
+import { Point2D, computeCumulativeLengths, samplePolyline } from '../src/geometry/point.js';
+import { Polygon, segmentIntersection } from '../src/geometry/polygon.js';
+import { splitPolygonByLine, splitSatinByLine, splitPolylineByLine } from '../src/geometry/slicer.js';
+import { generateRunningStitch } from '../src/stitches/running.js';
+import { generateSatinColumn } from '../src/stitches/satin.js';
+import { generateTatamiFill } from '../src/stitches/tatami.js';
+import { StitchCommand, StitchPoint, StitchType } from '../src/stitches/types.js';
+import { writeDst, readDst, encodeDstRecord, decodeDstRecord } from '../src/formats/dst.js';
+import { writeExp } from '../src/formats/exp.js';
+import { DigitizerEngine } from '../src/engine.js';
+import { parseSvgPath } from '../src/svg/svg-parser.js';
+
+let totalTests = 0;
+let passedTests = 0;
+let failedTests = 0;
+
+function assert(condition, message) {
+  totalTests++;
+  if (condition) {
+    passedTests++;
+    console.log(`  ✓ PASS: ${message}`);
+  } else {
+    failedTests++;
+    console.error(`  ✗ FAIL: ${message}`);
+  }
+}
+
+function assertClose(val, expected, tolerance = 1e-3, message = '') {
+  const diff = Math.abs(val - expected);
+  assert(diff <= tolerance, `${message} (got ${val}, expected ${expected})`);
+}
+
+console.log('\n=============================================');
+console.log(' RUNNING EMBROIDERY DIGITIZER ENGINE TESTS');
+console.log('=============================================\n');
+
+// -------------------------------------------------------------
+// 1. GEOMETRY TESTS
+// -------------------------------------------------------------
+console.log('[1. Geometry & Vector Math]');
+
+const p1 = new Point2D(0, 0);
+const p2 = new Point2D(3, 4);
+assertClose(p1.distance(p2), 5.0, 1e-4, 'Point2D distance');
+assertClose(p2.length(), 5.0, 1e-4, 'Point2D length');
+
+const norm = p2.normalize();
+assertClose(norm.length(), 1.0, 1e-4, 'Point2D normalize length is 1');
+assertClose(norm.x, 0.6, 1e-4, 'Point2D normalize x');
+assertClose(norm.y, 0.8, 1e-4, 'Point2D normalize y');
+
+const pRotated = new Point2D(10, 0).rotate(Math.PI / 2);
+assertClose(pRotated.x, 0, 1e-4, 'Point2D rotate 90 deg x');
+assertClose(pRotated.y, 10, 1e-4, 'Point2D rotate 90 deg y');
+
+// Polygon tests
+const rectVerts = [
+  new Point2D(0, 0),
+  new Point2D(20, 0),
+  new Point2D(20, 10),
+  new Point2D(0, 10)
+];
+const poly = new Polygon(rectVerts);
+assert(poly.containsPoint(new Point2D(10, 5)), 'Polygon contains inside point (10, 5)');
+assert(!poly.containsPoint(new Point2D(25, 5)), 'Polygon rejects outside point (25, 5)');
+assertClose(Math.abs(poly.signedArea()), 200, 1e-3, 'Polygon area calculation');
+
+// Scanline clipping
+const scanSegments = poly.intersectScanline(5);
+assert(scanSegments.length === 1, 'Scanline intersects polygon in exactly 1 segment');
+assertClose(scanSegments[0][0], 0, 1e-3, 'Scanline segment start x');
+assertClose(scanSegments[0][1], 20, 1e-3, 'Scanline segment end x');
+
+// Polygon knife slicing
+const splitCut = splitPolygonByLine(poly, new Point2D(10, -5), new Point2D(10, 15));
+assert(splitCut.length === 2, 'Split tool splits rectangle into 2 polygons');
+const area1 = Math.abs(splitCut[0].signedArea());
+const area2 = Math.abs(splitCut[1].signedArea());
+assertClose(area1 + area2, 200, 1e-2, 'Split sub-polygons total area equals original');
+
+// Satin Column knife slicing
+const testR1 = [new Point2D(0, 0), new Point2D(0, 10), new Point2D(0, 20)];
+const testR2 = [new Point2D(4, 0), new Point2D(4, 10), new Point2D(4, 20)];
+const satinCut = splitSatinByLine(testR1, testR2, new Point2D(-2, 10), new Point2D(6, 10));
+assert(satinCut !== null && satinCut.length === 2, 'Split tool splits Satin column into 2 columns');
+assert(satinCut[0].rail1.length >= 2 && satinCut[0].rail2.length >= 2, 'Satin piece A has valid rails');
+assert(satinCut[1].rail1.length >= 2 && satinCut[1].rail2.length >= 2, 'Satin piece B has valid rails');
+
+// Polyline knife slicing
+const testPolyline = [new Point2D(0, 0), new Point2D(10, 0), new Point2D(20, 0)];
+const polylineCut = splitPolylineByLine(testPolyline, new Point2D(10, -5), new Point2D(10, 5));
+assert(polylineCut !== null && polylineCut.length === 2, 'Split tool splits polyline into 2 paths');
+
+// -------------------------------------------------------------
+// 2. STITCH GENERATOR TESTS
+// -------------------------------------------------------------
+console.log('\n[2. Stitch Weave Generators]');
+
+// A. Running Stitch
+const linePath = [new Point2D(0, 0), new Point2D(10, 0)];
+const runStitches = generateRunningStitch(linePath, { stitchLength: 2.0 });
+assert(runStitches.length >= 5, 'Running stitch produces expected needle intervals');
+assert(runStitches[0].command === StitchCommand.JUMP, 'First running stitch is a JUMP travel');
+assert(runStitches[1].command === StitchCommand.STITCH, 'Subsequent stitches are STITCH');
+
+// B. Satin Column
+const rail1 = [new Point2D(0, 0), new Point2D(0, 10), new Point2D(0, 20)];
+const rail2 = [new Point2D(4, 0), new Point2D(4, 10), new Point2D(4, 20)];
+const satinStitches = generateSatinColumn(rail1, rail2, {
+  density: 0.5,
+  pullComp: 0.2,
+  underlay: true
+});
+
+assert(satinStitches.length > 20, 'Satin column generates comprehensive stitch sequence');
+// Verify pull compensation widened the column beyond original 4mm
+let maxSatinWidth = 0;
+for (let i = 0; i < satinStitches.length - 1; i += 2) {
+  const dist = new Point2D(satinStitches[i].x, satinStitches[i].y)
+    .distance(new Point2D(satinStitches[i + 1].x, satinStitches[i + 1].y));
+  if (dist > maxSatinWidth) maxSatinWidth = dist;
+}
+assert(maxSatinWidth > 4.0, `Satin pull compensation increased width (max ${maxSatinWidth.toFixed(2)}mm > 4.0mm)`);
+
+// C. Tatami Fill
+const tatamiStitches = generateTatamiFill(poly, {
+  density: 0.4,
+  stitchLength: 3.5,
+  angle: 45,
+  stagger: 0.25,
+  underlay: true
+});
+assert(tatamiStitches.length > 50, 'Tatami fill generated scanline pattern with underlay');
+
+// -------------------------------------------------------------
+// 3. TAJIMA DST BINARY ENCODING & DECODING
+// -------------------------------------------------------------
+console.log('\n[3. Machine Formats (DST Binary Round-trip)]');
+
+// Test single record encode/decode
+const testDeltas = [
+  { dx: 0, dy: 0, cmd: StitchCommand.STITCH },
+  { dx: 50, dy: -30, cmd: StitchCommand.STITCH },
+  { dx: -120, dy: 110, cmd: StitchCommand.JUMP },
+  { dx: 15, dy: 80, cmd: StitchCommand.COLOR_CHANGE },
+  { dx: 0, dy: 0, cmd: StitchCommand.END }
+];
+
+for (const t of testDeltas) {
+  const enc = encodeDstRecord(t.dx, t.dy, t.cmd);
+  assert(enc.length === 3, 'DST record is exactly 3 bytes');
+  const dec = decodeDstRecord(enc[0], enc[1], enc[2]);
+  if (t.cmd !== StitchCommand.END) {
+    assert(dec.dx === t.dx && dec.dy === t.dy, `DST ternary round-trip exact delta (${t.dx}, ${t.dy})`);
+    assert(dec.command === t.cmd, `DST command preserved (${t.cmd})`);
+  } else {
+    assert(dec.command === StitchCommand.END, 'DST end record decoded correctly');
+  }
+}
+
+// Test complete DST file writing and reading
+const samplePattern = [
+  new StitchPoint(0, 0, StitchCommand.JUMP, 0),
+  new StitchPoint(2.5, 3.2, StitchCommand.STITCH, 0),
+  new StitchPoint(5.0, 6.4, StitchCommand.STITCH, 0),
+  new StitchPoint(10.0, 12.0, StitchCommand.STITCH, 0),
+  // Large jump that requires chunking (>12.1mm)
+  new StitchPoint(35.0, 40.0, StitchCommand.JUMP, 1),
+  new StitchPoint(36.0, 41.0, StitchCommand.STITCH, 1)
+];
+
+const dstBytes = writeDst(samplePattern, 'FLOWER');
+assert(dstBytes.length >= 512 + 6 * 3, 'DST file size >= 512 header + stitch records');
+assert(dstBytes[511] === 0x1A, 'DST header terminates with EOF character 0x1A');
+
+// Read back the DST file
+const { headerStr, stitches: decodedStitches } = readDst(dstBytes.buffer);
+assert(headerStr.startsWith('LA:FLOWER'), 'DST header contains correct design label');
+assert(decodedStitches.length >= samplePattern.length, 'DST reader recovered all stitch positions');
+
+// End position matches original final target
+const lastOriginal = samplePattern[samplePattern.length - 1];
+const lastDecoded = decodedStitches[decodedStitches.length - 1];
+assertClose(lastDecoded.x, lastOriginal.x, 0.15, 'Final X position preserved after DST round-trip');
+assertClose(lastDecoded.y, lastOriginal.y, 0.15, 'Final Y position preserved after DST round-trip');
+
+// Commercial sewing stitch length test (subdivision of moves > 7.0mm)
+const longSewTest = [
+  new StitchPoint(0, 0, StitchCommand.JUMP, 0),
+  new StitchPoint(15.0, 0, StitchCommand.STITCH, 0) // 15mm single stitch
+];
+const longDst = writeDst(longSewTest, 'LONG');
+const { stitches: decodedLong } = readDst(longDst.buffer);
+let maxDecodedSew = 0;
+for (let i = 1; i < decodedLong.length; i++) {
+  if (decodedLong[i].command === StitchCommand.STITCH) {
+    const dist = decodedLong[i].distance(decodedLong[i - 1]);
+    if (dist > maxDecodedSew) maxDecodedSew = dist;
+  }
+}
+assert(maxDecodedSew <= 7.0, `DST long sewing stitch subdivided into safe segments (max ${maxDecodedSew.toFixed(2)}mm <= 7.0mm)`);
+assert(decodedLong.length >= 4, '15mm stitch subdivided into 3+ intermediate stitches');
+
+// -------------------------------------------------------------
+// 4. UNIFIED ENGINE & SVG INTEGRATION
+// -------------------------------------------------------------
+console.log('\n[4. Unified Digitizer Engine]');
+
+const engine = new DigitizerEngine();
+
+// Layer 1: Tatami center
+const petalPoly = new Polygon([
+  new Point2D(10, 10),
+  new Point2D(30, 10),
+  new Point2D(35, 25),
+  new Point2D(20, 35),
+  new Point2D(5, 25)
+]);
+const layer1 = engine.addLayer({
+  id: 'layer-tatami',
+  name: 'Center Twill Fill',
+  hex: '#f59e0b',
+  stitchType: StitchType.TWILL,
+  params: { density: 0.4, stitchLength: 3.5, stagger: 0.25 }
+});
+layer1.geometry = petalPoly;
+
+// Layer 2: Satin border
+const layer2 = engine.addLayer({
+  id: 'layer-satin',
+  name: 'Outer Satin Rim',
+  hex: '#ef4444',
+  stitchType: StitchType.SATIN,
+  params: { density: 0.4, pullComp: 0.3 }
+});
+layer2.geometry = { rail1, rail2 };
+
+const stats = engine.getDesignStats();
+assert(stats.stitchCount > 50, `Engine compiled multi-layer design (${stats.stitchCount} stitches)`);
+assert(stats.colorChanges === 1, `Engine inserted 1 thread color stop between 2 layers`);
+assert(stats.widthMm > 0 && stats.heightMm > 0, `Engine computed design dimensions: ${stats.widthMm}mm x ${stats.heightMm}mm`);
+
+const finalDst = engine.exportDst('TEST_PATCH');
+assert(finalDst instanceof Uint8Array && finalDst.length > 512, 'Engine exported valid .DST binary');
+
+const finalExp = engine.exportExp();
+assert(finalExp instanceof Uint8Array && finalExp.length > 0, 'Engine exported valid .EXP binary');
+
+// SVG Path parsing
+const svgPath = 'M 0 0 L 25 0 L 25 25 L 0 25 Z';
+const { polygons, polylines } = parseSvgPath(svgPath);
+assert(polygons.length === 1, 'SVG parser extracted closed polygon from SVG path');
+assertClose(Math.abs(polygons[0].signedArea()), 625, 1e-2, 'SVG parsed polygon has correct dimensions');
+
+// Stitch Type Switch / Geometry Auto-Conversion Test
+console.log('\n[5. Stitch Type Switching & Geometry Auto-Conversion]');
+const morphLayer = engine.addLayer({
+  id: 'morph-layer',
+  name: 'Morphing Shape',
+  hex: '#10b981',
+  stitchType: StitchType.TATAMI
+});
+morphLayer.geometry = petalPoly; // Starts as Polygon
+
+// 1. Switch to Satin
+engine.setLayerStitchType('morph-layer', StitchType.SATIN);
+let morphStitches = engine.compileStitches();
+assert(morphStitches.length > 10, 'Switching Polygon to SATIN automatically adapts geometry and produces stitches');
+
+// 2. Switch back to Twill
+engine.setLayerStitchType('morph-layer', StitchType.TWILL);
+morphStitches = engine.compileStitches();
+assert(morphStitches.length > 10, 'Switching SATIN rails back to TWILL polygon produces valid stitches');
+
+// 3. Switch to Running
+engine.setLayerStitchType('morph-layer', StitchType.RUNNING);
+morphStitches = engine.compileStitches();
+assert(morphStitches.length > 10, 'Switching to RUNNING creates perimeter outline stitches');
+
+console.log('\n=============================================');
+console.log(` RESULTS: ${passedTests} passed, ${failedTests} failed, ${totalTests} total.`);
+console.log('=============================================\n');
+
+if (failedTests > 0) {
+  process.exit(1);
+}

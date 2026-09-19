@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EmbroideryTrace AI Engine — Vector to Machine Stitch Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-main: #0b0f19;
+      --bg-panel: #111827;
+      --bg-card: #1f2937;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-active: #0ea5e9;
+      --text-primary: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #0ea5e9;
+      --accent-pink: #f43f5e;
+      --accent-violet: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      height: 56px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-tag {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-violet));
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background: #374151;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-blue), #0284c7);
+      border: none;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-pink {
+      background: linear-gradient(135deg, var(--accent-pink), #e11d48);
+      border: none;
+      color: #fff;
+    }
+
+    .btn-active {
+      background: var(--accent-blue);
+      color: #fff;
+      border-color: var(--accent-blue);
+    }
+
+    /* Main Workspace Layout */
+    .workspace {
+      display: grid;
+      grid-template-columns: 280px 1fr 310px;
+      flex: 1;
+      height: calc(100vh - 56px);
+      overflow: hidden;
+    }
+
+    /* Left Sidebar: Layers & Presets */
+    .sidebar-left {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 16px 16px 8px;
+    }
+
+    .preset-selector {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 12px;
+    }
+
+    .layers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0 16px;
+      flex: 1;
+    }
+
+    .layer-card {
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .layer-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .layer-card.active {
+      background: rgba(14, 165, 233, 0.12);
+      border-color: var(--accent-blue);
+    }
+
+    .color-badge {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+
+    /* Center Stage: Interactive Canvas */
+    .canvas-stage {
+      position: relative;
+      background: #070a12;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #stitchCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* Floating Canvas Toolbar */
+    .canvas-hud-top {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 30px;
+      padding: 5px 8px;
+      display: flex;
+      gap: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      z-index: 5;
+    }
+
+    .tool-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .tool-btn.active {
+      background: var(--accent-blue);
+      color: #fff;
+    }
+
+    /* Floating Playback Bar */
+    .canvas-hud-bottom {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      z-index: 5;
+      width: 540px;
+    }
+
+    .playhead-slider {
+      flex: 1;
+      accent-color: var(--accent-blue);
+      cursor: pointer;
+    }
+
+    /* Right Sidebar: Stitch Parameters & Machine Stats */
+    .sidebar-right {
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .form-group {
+      padding: 8px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .form-value {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-blue);
+    }
+
+    select, input[type="range"] {
+      width: 100%;
+    }
+
+    select {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    .stats-card {
+      margin: 16px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-num {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-label {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hint-box {
+      margin: 0 16px 16px;
+      padding: 10px 12px;
+      background: rgba(14, 165, 233, 0.08);
+      border: 1px solid rgba(14, 165, 233, 0.2);
+      border-radius: 6px;
+      font-size: 11.5px;
+      color: #93c5fd;
+      line-height: 1.5;
+    }
+
+    /* Modal Overlay & Diagnostics Card */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-card {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      width: 620px;
+      max-width: 90vw;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    .modal-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .diag-box {
+      background: #0f172a;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .diag-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge-pass {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .badge-alert {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <span>🧵 EmbroideryTrace Studio</span>
+      <span class="brand-tag">v1.0 Core Engine</span>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn" id="btnUndo" title="Undo (Cmd+Z / Ctrl+Z)" style="opacity:0.4;cursor:not-allowed;">
+        <span>↩ Undo</span>
+      </button>
+      <button class="btn" id="btnRedo" title="Redo (Cmd+Shift+Z / Ctrl+Y)" style="opacity:0.4;cursor:not-allowed;">
+        <span>↪ Redo</span>
+      </button>
+      <button class="btn" id="exportExpBtn">
+        <span>⚡ Export .EXP (Melco)</span>
+      </button>
+      <button class="btn btn-primary" id="exportDstBtn">
+        <span>💾 Export .DST (Tajima Machine)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Workspace Grid -->
+  <div class="workspace">
+
+    <!-- Left Column: Layers & Designs -->
+    <aside class="sidebar-left">
+      <div class="section-title">Design Presets</div>
+      <div class="preset-selector">
+        <button class="btn" id="presetDaisy" style="flex:1;">🌼 Daisy Patch</button>
+        <button class="btn" id="presetMono" style="flex:1;">🔤 Monogram 'E'</button>
+      </div>
+
+      <div class="section-title">Thread Layers (Machine Stops)</div>
+      <div class="layers-list" id="layersContainer">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <div class="section-title">Design Telemetry</div>
+      <div class="stats-card">
+        <div class="stat-item">
+          <span class="stat-num" id="statStitches">0</span>
+          <span class="stat-label">Total Stitches</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num" id="statStops">0</span>
+          <span class="stat-label">Color Stops</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num" id="statWidth">0 mm</span>
+          <span class="stat-label">Width</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num" id="statHeight">0 mm</span>
+          <span class="stat-label">Height</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Stage: Canvas & Interactive Tools -->
+    <main class="canvas-stage">
+      <!-- Floating HUD: Tools -->
+      <div class="canvas-hud-top">
+        <button class="tool-btn active" id="toolSelect">
+          <span>🔍 Inspect / Pan</span>
+        </button>
+        <button class="tool-btn" id="toolSplit">
+          <span>🔪 Split Knife (Slice Shapes)</span>
+        </button>
+        <button class="tool-btn" id="btnFitScreen">
+          <span>🎯 Fit to Screen</span>
+        </button>
+        <button class="tool-btn" id="btnResetPreset">
+          <span>🔄 Reset Design</span>
+        </button>
+        <div style="width:1px;height:24px;background:var(--border-subtle);margin:0 4px;"></div>
+        <button class="tool-btn" id="btnHudUndo" title="Undo (Cmd+Z / Ctrl+Z)" style="opacity:0.35;cursor:not-allowed;">
+          <span>↩ Undo</span>
+        </button>
+        <button class="tool-btn" id="btnHudRedo" title="Redo (Cmd+Shift+Z / Ctrl+Y)" style="opacity:0.35;cursor:not-allowed;">
+          <span>↪ Redo</span>
+        </button>
+        <div style="width:1px;height:24px;background:var(--border-subtle);margin:0 4px;"></div>
+        <button class="tool-btn" id="btnDiagnostics" title="Inspect Machine Compliance & TC-502 Jumps" style="border-color:rgba(14,165,233,0.4);color:#38bdf8;">
+          <span>🧪 Diagnostics</span>
+        </button>
+      </div>
+
+      <!-- Main Stitch Viewport -->
+      <canvas id="stitchCanvas"></canvas>
+
+      <!-- Floating HUD: Needle Simulation Playback -->
+      <div class="canvas-hud-bottom">
+        <button class="btn" id="playPauseBtn" style="padding:4px 10px;font-size:12px;">▶ Play</button>
+        <input type="range" class="playhead-slider" id="playheadSlider" min="1" max="1000" value="1000" />
+        <select id="speedSelect" style="width:75px;padding:4px;font-size:11px;">
+          <option value="2">2x</option>
+          <option value="5" selected>5x</option>
+          <option value="15">15x</option>
+          <option value="50">50x</option>
+        </select>
+      </div>
+    </main>
+
+    <!-- Right Column: Stitch Weave Parameters -->
+    <aside class="sidebar-right">
+      <div class="section-title">Stitch Weave & Parameters</div>
+
+      <div class="form-group">
+        <label class="form-label">Stitch Weave Type</label>
+        <select id="stitchTypeSelect">
+          <option value="satin">Satin (Dual Rails zigzag, <6mm)</option>
+          <option value="tatami">Tatami Fill (Standard scanline)</option>
+          <option value="twill">Twill Weave (4-step staggered)</option>
+          <option value="running">Running Stitch (Single line)</option>
+          <option value="bean">Bean Stitch (Heavy triple run)</option>
+        </select>
+        <button class="btn btn-primary" id="btnGenerate" style="margin-top:8px;width:100%;justify-content:center;padding:9px 12px;font-size:13px;letter-spacing:0.02em;">
+          <span>⚡ Generate / Re-weave Stitches</span>
+        </button>
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>Stitch Density (Row Pitch)</span>
+          <span class="form-value" id="densityVal">0.4 mm</span>
+        </div>
+        <input type="range" id="densityInput" min="0.2" max="1.0" step="0.05" value="0.4" />
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>Stitch Step Length</span>
+          <span class="form-value" id="stitchLenVal">3.5 mm</span>
+        </div>
+        <input type="range" id="stitchLenInput" min="1.5" max="6.0" step="0.2" value="3.5" />
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>Stitch Angle</span>
+          <span class="form-value" id="angleVal">0°</span>
+        </div>
+        <input type="range" id="angleInput" min="0" max="180" step="5" value="0" />
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">
+          <span>Pull Compensation</span>
+          <span class="form-value" id="pullCompVal">+0.3 mm</span>
+        </div>
+        <input type="range" id="pullCompInput" min="0.0" max="0.8" step="0.05" value="0.3" />
+      </div>
+
+      <div class="form-group" style="flex-direction:row;align-items:center;justify-content:space-between;padding-top:12px;">
+        <label class="form-label" style="margin-bottom:0;">Generate Underlay</label>
+        <input type="checkbox" id="underlayCheck" checked style="width:18px;height:18px;accent-color:var(--accent-blue);" />
+      </div>
+
+      <div class="hint-box">
+        💡 <strong>Pro-Tip (Embroidery Rules):</strong><br />
+        Use <strong>Satin</strong> on shapes &lt;6mm for high sheen.<br />
+        Use <strong>Twill / Tatami</strong> on wider areas with 0.25 stagger to avoid fabric cuts.<br />
+        Use <strong>Split Knife</strong> tool to slice wide shapes into separate satin columns.
+      </div>
+    </aside>
+
+  <!-- Machine Diagnostics Modal (TC-500 & TC-502 Verification) -->
+  <div id="diagnosticsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">🧪</span>
+          <div>
+            <h3 style="margin:0;font-size:15px;font-weight:700;color:#f8fafc;">Machine Compliance & TC-502 Diagnostics</h3>
+            <div style="font-size:11px;color:#94a3b8;">Tajima .DST / Melco .EXP Binary Inspector</div>
+          </div>
+        </div>
+        <button id="closeDiagnosticsBtn" class="btn" style="padding:4px 10px;font-size:14px;background:none;border:none;color:#94a3b8;cursor:pointer;">✕</button>
+      </div>
+      <div class="modal-body" id="diagnosticsBody">
+        <!-- Injected dynamically via app.js -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
