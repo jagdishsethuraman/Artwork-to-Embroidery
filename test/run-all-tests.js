@@ -586,6 +586,47 @@ assert(redLayer !== undefined, `Disconnected red patches successfully combined i
 const clusterStats = clusterEngine.getDesignStats();
 assert(clusterStats.colorChanges === 1, `Compiled 2-cluster design has exactly 1 machine color stop (got ${clusterStats.colorChanges})`);
 
+// F. Universal Commercial Auto-Trim Connector Guarantee
+const connectorEngine = new DigitizerEngine();
+const lA = connectorEngine.addLayer({
+  id: 'la', stitchType: StitchType.TATAMI, params: { underlay: false }
+});
+lA.geometry = new Polygon([new Point2D(-30, -30), new Point2D(-20, -30), new Point2D(-20, -20), new Point2D(-30, -20)]);
+const lB = connectorEngine.addLayer({
+  id: 'lb', stitchType: StitchType.TATAMI, params: { underlay: false }
+});
+lB.geometry = new Polygon([new Point2D(20, 20), new Point2D(30, 20), new Point2D(30, 30), new Point2D(20, 30)]);
+
+const compiledConnectorStitches = connectorEngine.compileStitches();
+let untrimmedMovesOver5 = 0;
+let hadTrimOrColor = true;
+for (let i = 1; i < compiledConnectorStitches.length; i++) {
+  const s = compiledConnectorStitches[i];
+  const p = compiledConnectorStitches[i - 1];
+  if (s.command === StitchCommand.TRIM || s.command === StitchCommand.COLOR_CHANGE) {
+    hadTrimOrColor = true;
+  } else if (s.command === StitchCommand.JUMP) {
+    if (s.distance(p) > 5.0 && !hadTrimOrColor) {
+      untrimmedMovesOver5++;
+    }
+  } else if (s.command === StitchCommand.STITCH) {
+    hadTrimOrColor = false;
+  }
+}
+assert(untrimmedMovesOver5 === 0, `Commercial connector pass eliminated all untrimmed moves > 5.0mm (got ${untrimmedMovesOver5})`);
+
+// G. Landing Anchor Penetration in Exported DST
+const connectorDst = connectorEngine.exportDst('CONNECTOR');
+const { stitches: decConnector } = readDst(connectorDst.buffer);
+let firstStitchAfterJumpDistance = null;
+for (let i = 1; i < decConnector.length; i++) {
+  if (decConnector[i - 1].command === StitchCommand.JUMP && decConnector[i].command === StitchCommand.STITCH) {
+    firstStitchAfterJumpDistance = decConnector[i].distance(decConnector[i - 1]);
+    break;
+  }
+}
+assert(firstStitchAfterJumpDistance !== null && firstStitchAfterJumpDistance < 0.1, `Landing needle penetration recorded at exact landing jump coordinates`);
+
 
 console.log('\n=============================================');
 console.log(` RESULTS: ${passedTests} passed, ${failedTests} failed, ${totalTests} total.`);

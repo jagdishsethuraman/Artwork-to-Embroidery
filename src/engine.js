@@ -4,7 +4,7 @@ import { splitPolygonByLine, splitSatinByLine, splitPolylineByLine } from './geo
 import { generateRunningStitch } from './stitches/running.js';
 import { generateSatinColumn } from './stitches/satin.js';
 import { generateTatamiFill } from './stitches/tatami.js';
-import { ColorLayer, StitchCommand, StitchPoint, StitchType } from './stitches/types.js';
+import { ColorLayer, StitchCommand, StitchPoint, StitchType, createTieIn, createTieOff } from './stitches/types.js';
 import { writeDst, readDst } from './formats/dst.js';
 import { writeExp } from './formats/exp.js';
 import { parseSvgPath } from './svg/svg-parser.js';
@@ -204,29 +204,6 @@ function sequencePolygons(polys, startPt) {
   return ordered;
 }
 
-function createTieIn(x, y, colorIdx) {
-  return [
-    new StitchPoint(x, y, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x + 0.42, y, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x - 0.42, y, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x, y + 0.42, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x, y - 0.42, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x, y, StitchCommand.STITCH, colorIdx)
-  ];
-}
-
-function createTieOff(x, y, colorIdx) {
-  return [
-    new StitchPoint(x, y, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x + 0.42, y, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x - 0.42, y, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x, y + 0.42, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x, y - 0.42, StitchCommand.STITCH, colorIdx),
-    new StitchPoint(x, y, StitchCommand.STITCH, colorIdx)
-  ];
-}
-
-
 /**
  * Main Embroidery Digitizer Engine
  */
@@ -268,7 +245,7 @@ export class DigitizerEngine {
    * @returns {StitchPoint[]}
    */
   compileStitches() {
-    const allStitches = [];
+    const rawStitches = [];
     let lastNeedlePos = null;
 
     for (let lIdx = 0; lIdx < this.layers.length; lIdx++) {
@@ -276,9 +253,9 @@ export class DigitizerEngine {
       if (!layer.geometry) continue;
 
       // Add color change command if transitioning to a new layer
-      if (allStitches.length > 0) {
-        const lastStitch = allStitches[allStitches.length - 1];
-        allStitches.push(new StitchPoint(lastStitch.x, lastStitch.y, StitchCommand.COLOR_CHANGE, lIdx));
+      if (rawStitches.length > 0) {
+        const lastStitch = rawStitches[rawStitches.length - 1];
+        rawStitches.push(new StitchPoint(lastStitch.x, lastStitch.y, StitchCommand.COLOR_CHANGE, lIdx));
       }
 
       const polys = layer.getPolygons();
@@ -301,34 +278,39 @@ export class DigitizerEngine {
 
           if (lastNeedlePos) {
             const travelDist = lastNeedlePos.distance(new Point2D(firstPt.x, firstPt.y));
-            if (travelDist > 5.0) {
-              // Inter-island travel > 5.0mm: tie-off, TRIM, jump travel, tie-in
-              const tieOffColor = (lIdx > 0 && pIdx === 0) ? lIdx - 1 : lIdx;
-              allStitches.push(...createTieOff(lastNeedlePos.x, lastNeedlePos.y, tieOffColor));
-              allStitches.push(new StitchPoint(lastNeedlePos.x, lastNeedlePos.y, StitchCommand.TRIM, lIdx));
-              allStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
-              allStitches.push(...createTieIn(firstPt.x, firstPt.y, lIdx));
+            if (pIdx > 0) {
+              // Inter-island travel within the same layer
+              if (travelDist > 5.0) {
+                rawStitches.push(...createTieOff(lastNeedlePos.x, lastNeedlePos.y, lIdx));
+                rawStitches.push(new StitchPoint(lastNeedlePos.x, lastNeedlePos.y, StitchCommand.TRIM, lIdx));
+                rawStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+                rawStitches.push(...createTieIn(firstPt.x, firstPt.y, lIdx));
+              } else {
+                rawStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+              }
             } else {
-              // Short travel <= 5.0mm: jump travel without trimming
-              allStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+              // First island of new layer (after COLOR_CHANGE)
+              rawStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+              rawStitches.push(...createTieIn(firstPt.x, firstPt.y, lIdx));
             }
           } else {
             // First island of entire design
-            allStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
-            allStitches.push(...createTieIn(firstPt.x, firstPt.y, lIdx));
+            rawStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+            rawStitches.push(...createTieIn(firstPt.x, firstPt.y, lIdx));
           }
 
-          // Main body stitches (skip leading jump since already positioned)
-          for (let i = 1; i < polyStitches.length; i++) {
-            allStitches.push(polyStitches[i]);
+          // Main body stitches (skip leading jump since already positioned & tied in)
+          const startIdx = (polyStitches[0].command === StitchCommand.JUMP) ? 1 : 0;
+          for (let i = startIdx; i < polyStitches.length; i++) {
+            rawStitches.push(polyStitches[i]);
           }
 
           lastNeedlePos = new Point2D(lastPt.x, lastPt.y);
 
           // End of layer: tie-off and hardware TRIM
           if (pIdx === orderedPolys.length - 1) {
-            allStitches.push(...createTieOff(lastPt.x, lastPt.y, lIdx));
-            allStitches.push(new StitchPoint(lastPt.x, lastPt.y, StitchCommand.TRIM, lIdx));
+            rawStitches.push(...createTieOff(lastPt.x, lastPt.y, lIdx));
+            rawStitches.push(new StitchPoint(lastPt.x, lastPt.y, StitchCommand.TRIM, lIdx));
           }
         }
       } else {
@@ -372,18 +354,67 @@ export class DigitizerEngine {
 
         if (layerStitches.length > 2) {
           const withLocks = this._addLockStitches(layerStitches, lIdx);
-          allStitches.push(...withLocks);
+          rawStitches.push(...withLocks);
           const last = withLocks[withLocks.length - 1];
           lastNeedlePos = new Point2D(last.x, last.y);
         } else if (layerStitches.length > 0) {
-          allStitches.push(...layerStitches);
+          rawStitches.push(...layerStitches);
           const last = layerStitches[layerStitches.length - 1];
           lastNeedlePos = new Point2D(last.x, last.y);
         }
       }
     }
 
-    return allStitches;
+    // Universal Commercial Connector Pass:
+    // Ensures no un-trimmed jump > 5.0mm can ever exist across any stitch type or complex geometry
+    return this._enforceCommercialConnectors(rawStitches);
+  }
+
+  /**
+   * Enforces commercial auto-trim rules: Any travel move > 5.0mm without a preceding TRIM
+   * is automatically bracketed by a tie-off, hardware Tajima TRIM, travel jump, and tie-in.
+   */
+  _enforceCommercialConnectors(stitches) {
+    if (!stitches || stitches.length === 0) return [];
+    const result = [];
+    let currentColor = 0;
+    let lastSewPt = null;
+    let hadTrimOrColor = true;
+
+    for (let i = 0; i < stitches.length; i++) {
+      const pt = stitches[i];
+      if (pt.command === StitchCommand.COLOR_CHANGE) {
+        currentColor = pt.colorIndex;
+        result.push(pt);
+        hadTrimOrColor = true;
+        continue;
+      }
+      if (pt.command === StitchCommand.TRIM) {
+        result.push(pt);
+        hadTrimOrColor = true;
+        continue;
+      }
+      if (pt.command === StitchCommand.JUMP) {
+        const prev = result.length > 0 ? result[result.length - 1] : null;
+        const d = prev ? prev.distance(pt) : 0;
+        if (d > 5.0 && !hadTrimOrColor && lastSewPt) {
+          result.push(...createTieOff(prev.x, prev.y, currentColor));
+          result.push(new StitchPoint(prev.x, prev.y, StitchCommand.TRIM, currentColor));
+          result.push(pt);
+          result.push(...createTieIn(pt.x, pt.y, currentColor));
+          hadTrimOrColor = false;
+          lastSewPt = pt;
+        } else {
+          result.push(pt);
+        }
+        continue;
+      }
+      // StitchCommand.STITCH
+      result.push(pt);
+      lastSewPt = pt;
+      hadTrimOrColor = false;
+    }
+    return result;
   }
 
   /**

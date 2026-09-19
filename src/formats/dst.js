@@ -125,6 +125,7 @@ export function writeDst(stitches, label = 'EMBROID') {
   let prevY = 0;
   let minX = 0, maxX = 0, minY = 0, maxY = 0;
   let colorChanges = 0;
+  let isFirstStitchAfterTravel = true;
 
   const records = [];
 
@@ -139,6 +140,7 @@ export function writeDst(stitches, label = 'EMBROID') {
       records.push(encodeDstRecord(0, 0, StitchCommand.COLOR_CHANGE));
       prevX = targetX;
       prevY = targetY;
+      isFirstStitchAfterTravel = true;
       continue;
     }
 
@@ -149,6 +151,7 @@ export function writeDst(stitches, label = 'EMBROID') {
       records.push(encodeDstRecord(0, 0, StitchCommand.JUMP));
       prevX = targetX;
       prevY = targetY;
+      isFirstStitchAfterTravel = true;
       continue;
     }
 
@@ -158,7 +161,7 @@ export function writeDst(stitches, label = 'EMBROID') {
 
     if (pt.command === StitchCommand.JUMP) {
       if (dist === 0 && i > 0) continue; // Skip redundant intermediate zero-distance jumps
-
+      isFirstStitchAfterTravel = true;
 
       // Decompose large travel jump into intermediate JUMP steps <= 11.0mm (Euclidean <= 110, components <= 121)
       if (dist > 110 || Math.abs(dx) > MAX_JUMP_DELTA || Math.abs(dy) > MAX_JUMP_DELTA) {
@@ -181,31 +184,40 @@ export function writeDst(stitches, label = 'EMBROID') {
       }
     } else {
       // Standard STITCH command
-      // Commercial micro-stitch elimination: ignore duplicate or < 0.35mm needle penetrations
-      if (dist < 3.5) {
-        continue;
-      }
-
-      // Commercial limit: sewing stitches must not exceed MAX_SEW_DELTA (70 = 7.0mm).
-      // Longer stitches are split into intermediate needle penetrations along the stitch vector.
-      if (dist > MAX_SEW_DELTA) {
-        const steps = Math.ceil(dist / 60); // Subdivide into <= 6.0mm safe segments
-        const startX = prevX;
-        const startY = prevY;
-        for (let s = 1; s <= steps; s++) {
-          const nextSubX = Math.round(startX + (dx * s) / steps);
-          const nextSubY = Math.round(startY + (dy * s) / steps);
-          const subDx = nextSubX - prevX;
-          const subDy = nextSubY - prevY;
-          records.push(encodeDstRecord(subDx, subDy, StitchCommand.STITCH));
-          prevX = nextSubX;
-          prevY = nextSubY;
-        }
-      } else {
-        // Fits safely inside commercial sewing tolerance
+      if (isFirstStitchAfterTravel && dist < 3.5) {
+        // Initial anchor needle penetration at landing point (even if dist === 0 or < 3.5)
         records.push(encodeDstRecord(dx, dy, StitchCommand.STITCH));
         prevX = targetX;
         prevY = targetY;
+        isFirstStitchAfterTravel = false;
+      } else {
+        isFirstStitchAfterTravel = false;
+        // Commercial micro-stitch elimination: ignore duplicate or < 0.35mm needle penetrations
+        if (dist < 3.5) {
+          continue;
+        }
+
+        // Commercial limit: sewing stitches must not exceed MAX_SEW_DELTA (70 = 7.0mm).
+        // Longer stitches are split into intermediate needle penetrations along the stitch vector.
+        if (dist > MAX_SEW_DELTA) {
+          const steps = Math.ceil(dist / 60); // Subdivide into <= 6.0mm safe segments
+          const startX = prevX;
+          const startY = prevY;
+          for (let s = 1; s <= steps; s++) {
+            const nextSubX = Math.round(startX + (dx * s) / steps);
+            const nextSubY = Math.round(startY + (dy * s) / steps);
+            const subDx = nextSubX - prevX;
+            const subDy = nextSubY - prevY;
+            records.push(encodeDstRecord(subDx, subDy, StitchCommand.STITCH));
+            prevX = nextSubX;
+            prevY = nextSubY;
+          }
+        } else {
+          // Fits safely inside commercial sewing tolerance
+          records.push(encodeDstRecord(dx, dy, StitchCommand.STITCH));
+          prevX = targetX;
+          prevY = targetY;
+        }
       }
     }
 

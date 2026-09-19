@@ -76,3 +76,31 @@ export class ColorLayer {
     return [];
   }
 }
+
+/**
+ * Creates canonical commercial 4-point star tie-in lock stitches (>= 0.42mm arms)
+ */
+export function createTieIn(x, y, colorIndex = 0) {
+  return [
+    new StitchPoint(x, y, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x + 0.42, y, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x - 0.42, y, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x, y + 0.42, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x, y - 0.42, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x, y, StitchCommand.STITCH, colorIndex)
+  ];
+}
+
+/**
+ * Creates canonical commercial 4-point star tie-off lock stitches (>= 0.42mm arms)
+ */
+export function createTieOff(x, y, colorIndex = 0) {
+  return [
+    new StitchPoint(x, y, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x + 0.42, y, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x - 0.42, y, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x, y + 0.42, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x, y - 0.42, StitchCommand.STITCH, colorIndex),
+    new StitchPoint(x, y, StitchCommand.STITCH, colorIndex)
+  ];
+}

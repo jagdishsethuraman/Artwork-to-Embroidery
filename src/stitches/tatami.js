@@ -1,7 +1,7 @@
 import { Point2D } from '../geometry/point.js';
 import { Polygon } from '../geometry/polygon.js';
 import { generateRunningStitch } from './running.js';
-import { StitchCommand, StitchPoint } from './types.js';
+import { StitchCommand, StitchPoint, createTieIn, createTieOff } from './types.js';
 
 /**
  * Checks if two scanline segments from adjacent rows overlap spatially.
@@ -232,7 +232,6 @@ export function generateTatamiFill(polygon, options = {}) {
         stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.JUMP, colorIndex));
       } else {
         const dist = lastPt.distance(origStart);
-        // If moving to a new branch across empty space (> 1.6 * density), emit JUMP travel
         if (dist > density * 1.6) {
           stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.JUMP, colorIndex));
         } else if (dist >= 0.35) {
