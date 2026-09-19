@@ -439,6 +439,40 @@ for (const st of holeStitches) {
 }
 assert(stitchInHoleCount === 0, `Tatami fill cleanly jumped over cutout hole with 0 interior stitches (got ${stitchInHoleCount})`);
 
+// H. Monotonic Leg & Branch Partitioning Test
+// U-shaped polygon: two vertical legs (x: 0..10 and x: 20..30) connected at bottom (y: 20..30) with empty bay (y: 0..20)
+const uShapeVerts = [
+  new Point2D(0, 0),
+  new Point2D(10, 0),
+  new Point2D(10, 20),
+  new Point2D(20, 20),
+  new Point2D(20, 0),
+  new Point2D(30, 0),
+  new Point2D(30, 30),
+  new Point2D(0, 30)
+];
+const uPoly = new Polygon(uShapeVerts);
+const uStitches = generateTatamiFill(uPoly, {
+  density: 0.5,
+  stitchLength: 3.5,
+  angle: 0,
+  underlay: false
+});
+
+let uBayJumps = 0;
+for (let i = 1; i < uStitches.length; i++) {
+  const p1 = uStitches[i - 1];
+  const p2 = uStitches[i];
+  if (p2.command === StitchCommand.JUMP) {
+    // Crosses empty central bay between x: 10..20 and y: 0..20
+    if (Math.min(p1.x, p2.x) < 11 && Math.max(p1.x, p2.x) > 19 && (p1.y + p2.y) / 2 < 20) {
+      uBayJumps++;
+    }
+  }
+}
+assert(uBayJumps <= 1, `Monotonic branch partitioning reduced cross-bay jumps to <= 1 (got ${uBayJumps})`);
+assert(uStitches.length > 200, `U-shape tatami fill generated comprehensive stitches (got ${uStitches.length})`);
+
 console.log('\n=============================================');
 console.log(` RESULTS: ${passedTests} passed, ${failedTests} failed, ${totalTests} total.`);
 console.log('=============================================\n');
