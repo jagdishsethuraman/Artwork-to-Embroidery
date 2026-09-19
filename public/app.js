@@ -8,7 +8,11 @@ import {
   readDst,
   StitchType,
   StitchCommand,
-  ColorLayer
+  ColorLayer,
+  quantizeColors,
+  matchThreadColor,
+  MADEIRA_CATALOG,
+  traceMaskToPolygons
 } from '../src/engine.js';
 
 // Setup Engine
@@ -885,9 +889,511 @@ if (diagnosticsModal) {
   };
 }
 
+// ==========================================
+// RASTER IMAGE INGESTION & TRACE STUDIO (Phase 2)
+// ==========================================
+
+let currentLoadedImageData = null;
+let currentLoadedImageName = 'cherry';
+
+// Offscreen scratch canvas for reading and rendering pixels
+const offscreenCanvas = document.createElement('canvas');
+const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+
+// Sample Procedural Graphic Generators
+function createCherryGraphic() {
+  const w = 240, h = 240;
+  offscreenCanvas.width = w;
+  offscreenCanvas.height = h;
+  offscreenCtx.clearRect(0, 0, w, h);
+
+  // Stems (Dark green)
+  offscreenCtx.strokeStyle = '#15803d';
+  offscreenCtx.lineWidth = 7;
+  offscreenCtx.lineCap = 'round';
+
+  // Left stem
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(75, 145);
+  offscreenCtx.quadraticCurveTo(85, 80, 120, 50);
+  offscreenCtx.stroke();
+
+  // Right stem
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(150, 135);
+  offscreenCtx.quadraticCurveTo(140, 75, 120, 50);
+  offscreenCtx.stroke();
+
+  // Green Leaf
+  offscreenCtx.fillStyle = '#16a34a';
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(120, 50);
+  offscreenCtx.quadraticCurveTo(155, 30, 185, 45);
+  offscreenCtx.quadraticCurveTo(160, 75, 120, 50);
+  offscreenCtx.fill();
+
+  // Left Cherry (Bright Red)
+  offscreenCtx.fillStyle = '#dc2626';
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(75, 150, 36, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  // Left Cherry Glare (White)
+  offscreenCtx.fillStyle = '#ffffff';
+  offscreenCtx.beginPath();
+  offscreenCtx.ellipse(65, 140, 8, 14, -0.4, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  // Right Cherry (Ruby Red)
+  offscreenCtx.fillStyle = '#b91c1c';
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(155, 140, 32, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  // Right Cherry Glare (White)
+  offscreenCtx.fillStyle = '#ffffff';
+  offscreenCtx.beginPath();
+  offscreenCtx.ellipse(146, 130, 7, 12, -0.4, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  return offscreenCtx.getImageData(0, 0, w, h);
+}
+
+function createRocketGraphic() {
+  const w = 240, h = 240;
+  offscreenCanvas.width = w;
+  offscreenCanvas.height = h;
+  offscreenCtx.clearRect(0, 0, w, h);
+
+  // Thruster Flames (Amber & Sunset Gold)
+  offscreenCtx.fillStyle = '#ea580c';
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(100, 180);
+  offscreenCtx.lineTo(120, 225);
+  offscreenCtx.lineTo(140, 180);
+  offscreenCtx.closePath();
+  offscreenCtx.fill();
+
+  offscreenCtx.fillStyle = '#f59e0b';
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(108, 180);
+  offscreenCtx.lineTo(120, 210);
+  offscreenCtx.lineTo(132, 180);
+  offscreenCtx.closePath();
+  offscreenCtx.fill();
+
+  // Fins / Wings (Crimson Red)
+  offscreenCtx.fillStyle = '#dc2626';
+  // Left fin
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(95, 140);
+  offscreenCtx.lineTo(60, 185);
+  offscreenCtx.lineTo(95, 180);
+  offscreenCtx.closePath();
+  offscreenCtx.fill();
+  // Right fin
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(145, 140);
+  offscreenCtx.lineTo(180, 185);
+  offscreenCtx.lineTo(145, 180);
+  offscreenCtx.closePath();
+  offscreenCtx.fill();
+
+  // Rocket Body (Silver White)
+  offscreenCtx.fillStyle = '#cbd5e1';
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(120, 30);
+  offscreenCtx.quadraticCurveTo(155, 80, 145, 180);
+  offscreenCtx.lineTo(95, 180);
+  offscreenCtx.quadraticCurveTo(85, 80, 120, 30);
+  offscreenCtx.closePath();
+  offscreenCtx.fill();
+
+  // Nose Cone (Red)
+  offscreenCtx.fillStyle = '#dc2626';
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(120, 30);
+  offscreenCtx.quadraticCurveTo(138, 55, 136, 75);
+  offscreenCtx.lineTo(104, 75);
+  offscreenCtx.quadraticCurveTo(102, 55, 120, 30);
+  offscreenCtx.closePath();
+  offscreenCtx.fill();
+
+  // Cockpit Window (Navy Rim + Sky Blue)
+  offscreenCtx.fillStyle = '#1e3a8a';
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(120, 115, 18, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  offscreenCtx.fillStyle = '#38bdf8';
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(120, 115, 13, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  return offscreenCtx.getImageData(0, 0, w, h);
+}
+
+function createStarGraphic() {
+  const w = 240, h = 240;
+  offscreenCanvas.width = w;
+  offscreenCanvas.height = h;
+  offscreenCtx.clearRect(0, 0, w, h);
+
+  // Outer Circular Badge / Shield Ring (Royal Blue)
+  offscreenCtx.fillStyle = '#2563eb';
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(120, 120, 95, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  // Inner White Ring
+  offscreenCtx.fillStyle = '#ffffff';
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(120, 120, 80, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  // Inner Navy Disk
+  offscreenCtx.fillStyle = '#1e3a8a';
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(120, 120, 72, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  // Golden Star (5 points)
+  let rot = (Math.PI / 2) * 3;
+  let x = 120;
+  let y = 120;
+  const spikes = 5;
+  const outerRadius = 55;
+  const innerRadius = 23;
+  const step = Math.PI / spikes;
+
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(120, 120 - outerRadius);
+  for (let i = 0; i < spikes; i++) {
+    x = 120 + Math.cos(rot) * outerRadius;
+    y = 120 + Math.sin(rot) * outerRadius;
+    offscreenCtx.lineTo(x, y);
+    rot += step;
+
+    x = 120 + Math.cos(rot) * innerRadius;
+    y = 120 + Math.sin(rot) * innerRadius;
+    offscreenCtx.lineTo(x, y);
+    rot += step;
+  }
+  offscreenCtx.lineTo(120, 120 - outerRadius);
+  offscreenCtx.closePath();
+  offscreenCtx.fillStyle = '#fbbf24';
+  offscreenCtx.fill();
+
+  // Red Center Gem
+  offscreenCtx.fillStyle = '#dc2626';
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(120, 120, 10, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  return offscreenCtx.getImageData(0, 0, w, h);
+}
+
+function renderImportPreview() {
+  if (!currentLoadedImageData) return;
+
+  const kInput = document.getElementById('importKInput');
+  const widthInput = document.getElementById('importWidthInput');
+  const simpInput = document.getElementById('importSimplificationInput');
+  const ignoreWhiteCheck = document.getElementById('importIgnoreWhite');
+  const ignoreAlphaCheck = document.getElementById('importIgnoreAlpha');
+
+  if (!kInput || !widthInput || !simpInput) return;
+
+  const k = parseInt(kInput.value, 10);
+  const targetWidthMm = parseFloat(widthInput.value);
+  const simplification = parseFloat(simpInput.value);
+  const ignoreWhiteBg = ignoreWhiteCheck.checked;
+  const ignoreTransparent = ignoreAlphaCheck.checked;
+
+  document.getElementById('importKVal').innerText = `${k} colors`;
+  document.getElementById('importWidthVal').innerText = `${targetWidthMm} mm`;
+  document.getElementById('importSimplificationVal').innerText = `${simplification.toFixed(1)} mm`;
+
+  const w = currentLoadedImageData.width;
+  const h = currentLoadedImageData.height;
+  const targetHeightMm = parseFloat((targetWidthMm * (h / w)).toFixed(1));
+  document.getElementById('importHoopFitSummary').innerText = `${targetWidthMm.toFixed(1)} × ${targetHeightMm} mm`;
+
+  // 1. Pane 1: Original Bitmap
+  const origCanvas = document.getElementById('previewOrigCanvas');
+  const oCtx = origCanvas.getContext('2d');
+  oCtx.clearRect(0, 0, origCanvas.width, origCanvas.height);
+
+  const scaleFit = Math.min(origCanvas.width / w, origCanvas.height / h);
+  const dw = w * scaleFit;
+  const dh = h * scaleFit;
+  const dx = (origCanvas.width - dw) / 2;
+  const dy = (origCanvas.height - dh) / 2;
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = w;
+  tempCanvas.height = h;
+  const tCtx = tempCanvas.getContext('2d');
+  tCtx.putImageData(currentLoadedImageData, 0, 0);
+
+  oCtx.drawImage(tempCanvas, dx, dy, dw, dh);
+  document.getElementById('previewOrigInfo').innerText = `${w} × ${h} px`;
+
+  // 2. Quantize Colors
+  const quantResult = quantizeColors(currentLoadedImageData, {
+    k,
+    ignoreWhiteBg,
+    ignoreTransparent,
+    maxIterations: 10
+  });
+
+  const quantCanvas = document.getElementById('previewQuantizedCanvas');
+  const qCtx = quantCanvas.getContext('2d');
+  qCtx.clearRect(0, 0, quantCanvas.width, quantCanvas.height);
+
+  const qImgData = tCtx.createImageData(w, h);
+  for (const cluster of quantResult.clusters) {
+    const hex = cluster.hex;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const mask = cluster.mask;
+    for (let i = 0; i < mask.length; i++) {
+      if (mask[i] === 1) {
+        const pIdx = i * 4;
+        qImgData.data[pIdx] = r;
+        qImgData.data[pIdx + 1] = g;
+        qImgData.data[pIdx + 2] = b;
+        qImgData.data[pIdx + 3] = 255;
+      }
+    }
+  }
+  tCtx.putImageData(qImgData, 0, 0);
+  qCtx.drawImage(tempCanvas, dx, dy, dw, dh);
+
+  document.getElementById('previewQuantizedInfo').innerText = `${quantResult.clusters.length} Thread Colors`;
+
+  // Populate Palette List
+  const paletteList = document.getElementById('paletteList');
+  paletteList.innerHTML = '';
+  const totalFg = Math.max(1, quantResult.totalForegroundPixels);
+  for (const cluster of quantResult.clusters) {
+    const pct = Math.round((cluster.pixelCount / totalFg) * 100);
+    const chip = document.createElement('div');
+    chip.className = 'palette-chip';
+    chip.innerHTML = `
+      <div class="palette-color-swatch" style="background-color: ${cluster.hex};"></div>
+      <div class="palette-thread-name" title="${cluster.threadCode}">${cluster.threadCode}</div>
+      <div class="palette-thread-pct">${pct}%</div>
+    `;
+    paletteList.appendChild(chip);
+  }
+
+  // 3. Pane 3: Vector Outlines & Contours
+  const vecCanvas = document.getElementById('previewVectorsCanvas');
+  const vCtx = vecCanvas.getContext('2d');
+  vCtx.clearRect(0, 0, vecCanvas.width, vecCanvas.height);
+
+  let totalPolygons = 0;
+  const allClusterPolys = [];
+
+  for (const cluster of quantResult.clusters) {
+    const polys = traceMaskToPolygons(cluster.mask, w, h, {
+      targetWidthMm,
+      simplification,
+      minAreaMm2: 2.0
+    });
+    totalPolygons += polys.length;
+    allClusterPolys.push({ cluster, polys });
+  }
+
+  const vScale = (vecCanvas.width - 24) / Math.max(targetWidthMm, targetHeightMm);
+  const vCenterX = vecCanvas.width / 2;
+  const vCenterY = vecCanvas.height / 2;
+
+  for (const item of allClusterPolys) {
+    vCtx.fillStyle = item.cluster.hex + '55';
+    vCtx.strokeStyle = item.cluster.hex;
+    vCtx.lineWidth = 1.5;
+
+    for (const poly of item.polys) {
+      if (!poly.vertices || poly.vertices.length < 3) continue;
+      vCtx.beginPath();
+      const p0 = poly.vertices[0];
+      vCtx.moveTo(vCenterX + p0.x * vScale, vCenterY + p0.y * vScale);
+      for (let i = 1; i < poly.vertices.length; i++) {
+        const p = poly.vertices[i];
+        vCtx.lineTo(vCenterX + p.x * vScale, vCenterY + p.y * vScale);
+      }
+      vCtx.closePath();
+      vCtx.fill();
+      vCtx.stroke();
+    }
+  }
+
+  document.getElementById('previewVectorsInfo').innerText = `${totalPolygons} Vector Shapes`;
+  document.getElementById('previewVectorTelemetry').innerText = `${totalPolygons} closed contours • ${targetWidthMm.toFixed(1)} × ${targetHeightMm} mm`;
+
+  const estStitches = Math.max(400, Math.round(totalPolygons * 420 + 350));
+  document.getElementById('importEstStitchesSummary').innerText = `~${estStitches.toLocaleString()} stitches (${totalPolygons} layers)`;
+}
+
+function selectSample(name) {
+  currentLoadedImageName = name;
+  document.querySelectorAll('.sample-pill').forEach(btn => btn.classList.remove('active'));
+
+  if (name === 'cherry') {
+    document.getElementById('sampleCherryBtn')?.classList.add('active');
+    currentLoadedImageData = createCherryGraphic();
+  } else if (name === 'rocket') {
+    document.getElementById('sampleRocketBtn')?.classList.add('active');
+    currentLoadedImageData = createRocketGraphic();
+  } else if (name === 'star') {
+    document.getElementById('sampleStarBtn')?.classList.add('active');
+    currentLoadedImageData = createStarGraphic();
+  }
+
+  renderImportPreview();
+}
+
+function openImportModal() {
+  const modal = document.getElementById('importModal');
+  if (modal) modal.style.display = 'flex';
+  if (!currentLoadedImageData) {
+    selectSample('cherry');
+  } else {
+    renderImportPreview();
+  }
+}
+
+function closeImportModal() {
+  const modal = document.getElementById('importModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function loadUserImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+      const MAX_DIM = 360;
+      if (w > MAX_DIM || h > MAX_DIM) {
+        if (w > h) {
+          h = Math.round((h * MAX_DIM) / w);
+          w = MAX_DIM;
+        } else {
+          w = Math.round((w * MAX_DIM) / h);
+          h = MAX_DIM;
+        }
+      }
+
+      offscreenCanvas.width = w;
+      offscreenCanvas.height = h;
+      offscreenCtx.clearRect(0, 0, w, h);
+      offscreenCtx.drawImage(img, 0, 0, w, h);
+      currentLoadedImageData = offscreenCtx.getImageData(0, 0, w, h);
+      currentLoadedImageName = file.name.replace(/\.[^/.]+$/, '');
+
+      document.querySelectorAll('.sample-pill').forEach(btn => btn.classList.remove('active'));
+      renderImportPreview();
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Drag & Drop / File Input setup
+const dropZone = document.getElementById('dropZone');
+const imageFileInput = document.getElementById('imageFileInput');
+if (dropZone && imageFileInput) {
+  dropZone.onclick = () => imageFileInput.click();
+  dropZone.ondragover = (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  };
+  dropZone.ondragleave = () => {
+    dropZone.classList.remove('dragover');
+  };
+  dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      loadUserImageFile(e.dataTransfer.files[0]);
+    }
+  };
+  imageFileInput.onchange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      loadUserImageFile(e.target.files[0]);
+    }
+  };
+}
+
+// Sample buttons
+document.getElementById('sampleCherryBtn')?.addEventListener('click', () => selectSample('cherry'));
+document.getElementById('sampleRocketBtn')?.addEventListener('click', () => selectSample('rocket'));
+document.getElementById('sampleStarBtn')?.addEventListener('click', () => selectSample('star'));
+
+// Import modal open/close
+document.getElementById('btnOpenImport')?.addEventListener('click', openImportModal);
+document.getElementById('btnSidebarImport')?.addEventListener('click', openImportModal);
+document.getElementById('closeImportBtn')?.addEventListener('click', closeImportModal);
+document.getElementById('btnCancelImport')?.addEventListener('click', closeImportModal);
+
+const importModal = document.getElementById('importModal');
+if (importModal) {
+  importModal.addEventListener('click', (e) => {
+    if (e.target.id === 'importModal') closeImportModal();
+  });
+}
+
+// Live sliders
+['importKInput', 'importWidthInput', 'importSimplificationInput', 'importStitchType', 'importIgnoreWhite', 'importIgnoreAlpha'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', renderImportPreview);
+    el.addEventListener('change', renderImportPreview);
+  }
+});
+
+// Convert and Generate action
+document.getElementById('btnConvertAndGenerate')?.addEventListener('click', () => {
+  if (!currentLoadedImageData) return;
+  pushState();
+
+  const k = parseInt(document.getElementById('importKInput').value, 10);
+  const targetWidthMm = parseFloat(document.getElementById('importWidthInput').value);
+  const simplification = parseFloat(document.getElementById('importSimplificationInput').value);
+  const defaultStitchType = document.getElementById('importStitchType').value;
+  const ignoreWhiteBg = document.getElementById('importIgnoreWhite').checked;
+  const ignoreTransparent = document.getElementById('importIgnoreAlpha').checked;
+
+  engine.importImage(currentLoadedImageData, {
+    k,
+    targetWidthMm,
+    simplification,
+    minAreaMm2: 2.5,
+    defaultStitchType,
+    clearExisting: true,
+    ignoreWhiteBg,
+    ignoreTransparent
+  });
+
+  activePreset = currentLoadedImageName || 'traced_artwork';
+  updateLayersUI();
+  updateStats();
+  resetPlayhead();
+  fitToScreen();
+  render();
+
+  closeImportModal();
+});
+
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && diagnosticsModal && diagnosticsModal.style.display === 'flex') {
-    closeDiagnosticsModal();
+  if (e.key === 'Escape') {
+    if (diagnosticsModal && diagnosticsModal.style.display === 'flex') closeDiagnosticsModal();
+    if (importModal && importModal.style.display === 'flex') closeImportModal();
   }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
     e.preventDefault();

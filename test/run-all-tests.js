@@ -11,7 +11,7 @@ import { generateTatamiFill } from '../src/stitches/tatami.js';
 import { StitchCommand, StitchPoint, StitchType } from '../src/stitches/types.js';
 import { writeDst, readDst, encodeDstRecord, decodeDstRecord } from '../src/formats/dst.js';
 import { writeExp } from '../src/formats/exp.js';
-import { DigitizerEngine } from '../src/engine.js';
+import { DigitizerEngine, quantizeColors, traceMaskToPolygons, ramerDouglasPeucker } from '../src/engine.js';
 import { parseSvgPath } from '../src/svg/svg-parser.js';
 
 let totalTests = 0;
@@ -280,6 +280,123 @@ assert(morphStitches.length > 10, 'Switching SATIN rails back to TWILL polygon p
 engine.setLayerStitchType('morph-layer', StitchType.RUNNING);
 morphStitches = engine.compileStitches();
 assert(morphStitches.length > 10, 'Switching to RUNNING creates perimeter outline stitches');
+
+// -------------------------------------------------------------
+// 6. RASTER IMAGE INGESTION, QUANTIZATION & TRACE (PHASE 2)
+// -------------------------------------------------------------
+console.log('\n[6. Raster Image Ingestion, Color Quantization & Vector Tracing]');
+
+// A. Ramer-Douglas-Peucker simplification
+const noisyLine = [
+  new Point2D(0, 0), new Point2D(2, 0.2), new Point2D(5, -0.1),
+  new Point2D(7, 0.1), new Point2D(10, 0)
+];
+const simplified = ramerDouglasPeucker(noisyLine, 0.5);
+assert(simplified.length === 2, `RDP simplified 5 collinear points down to 2 (got ${simplified.length})`);
+assert(simplified[0].x === 0 && simplified[1].x === 10, 'RDP preserved exact polyline endpoints');
+
+// B. Color Quantization on synthetic 2-color bitmap (Red heart on Blue shield)
+const imgW = 20;
+const imgH = 20;
+const pixelData = new Uint8Array(imgW * imgH * 4);
+
+for (let y = 0; y < imgH; y++) {
+  for (let x = 0; x < imgW; x++) {
+    const idx = (y * imgW + x) * 4;
+    // Central 10x10 square is Red (#dc2626)
+    if (x >= 5 && x < 15 && y >= 5 && y < 15) {
+      pixelData[idx] = 220;     // R
+      pixelData[idx + 1] = 38;  // G
+      pixelData[idx + 2] = 38;  // B
+      pixelData[idx + 3] = 255; // A
+    } else {
+      // Background is Royal Blue (#2563eb)
+      pixelData[idx] = 37;      // R
+      pixelData[idx + 1] = 99;  // G
+      pixelData[idx + 2] = 235; // B
+      pixelData[idx + 3] = 255; // A
+    }
+  }
+}
+
+const quantResult = quantizeColors({ data: pixelData, width: imgW, height: imgH }, { k: 2 });
+assert(quantResult.clusters.length === 2, `Quantizer isolated exactly 2 color clusters (got ${quantResult.clusters.length})`);
+assert(quantResult.clusters.some(c => c.threadCode.includes('Red')), 'Cluster 1 matched Madeira Red');
+assert(quantResult.clusters.some(c => c.threadCode.includes('Blue')), 'Cluster 2 matched Madeira Blue');
+
+// C. Contour Tracing on red square mask
+const redCluster = quantResult.clusters.find(c => c.threadCode.includes('Red'));
+const tracedPolys = traceMaskToPolygons(redCluster.mask, imgW, imgH, {
+  targetWidthMm: 50.0,
+  simplification: 0.5,
+  minAreaMm2: 5.0
+});
+assert(tracedPolys.length >= 1, `Tracer extracted closed polygon from bitmap mask (got ${tracedPolys.length})`);
+const redPoly = tracedPolys[0];
+assert(redPoly.vertices.length >= 4, `Extracted polygon has >= 4 vertices (got ${redPoly.vertices.length})`);
+const redArea = Math.abs(redPoly.signedArea());
+assert(redArea > 50, `Extracted polygon area is positive and physically realistic (${redArea.toFixed(1)}mm²)`);
+
+// D. End-to-End Engine Image Import & DST Compilation
+const traceEngine = new DigitizerEngine();
+const importedLayers = traceEngine.importImage({ data: pixelData, width: imgW, height: imgH }, {
+  k: 2,
+  targetWidthMm: 60.0
+});
+assert(importedLayers.length >= 2, `Engine importImage created embroidery layers (got ${importedLayers.length})`);
+const importedStitches = traceEngine.compileStitches();
+assert(importedStitches.length > 50, `Imported design compiled into stitch stream (${importedStitches.length} stitches)`);
+
+// Export to DST and verify round-trip
+const importedDst = traceEngine.exportDst('TRACE_TEST');
+assert(importedDst.length >= 512, 'Exported valid Tajima DST from traced bitmap');
+const { stitches: decodedTraced } = readDst(importedDst.buffer);
+assert(decodedTraced.length > 0, 'DST reader successfully decoded traced design stitches');
+
+// E. Verify Commercial Stitch Limits on Decoded Traced DST
+let maxSewDelta = 0;
+let maxJumpEuclidean = 0;
+for (let i = 1; i < decodedTraced.length; i++) {
+  const prev = decodedTraced[i - 1];
+  const curr = decodedTraced[i];
+  const dx = Math.abs(curr.x - prev.x);
+  const dy = Math.abs(curr.y - prev.y);
+  if (curr.command === StitchCommand.STITCH) {
+    const delta = Math.max(dx, dy);
+    if (delta > maxSewDelta) maxSewDelta = delta;
+  } else if (curr.command === StitchCommand.JUMP) {
+    const dist = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+    if (dist > maxJumpEuclidean) maxJumpEuclidean = dist;
+  }
+}
+assert(maxSewDelta <= 7.0 && maxSewDelta > 0, `Commercial sewing stitch limit respected on traced design (max ${maxSewDelta.toFixed(2)}mm <= 7.0mm)`);
+assert(maxJumpEuclidean <= 12.1 && maxJumpEuclidean > 0, `Commercial jump delta limit respected on traced design (max ${maxJumpEuclidean.toFixed(2)}mm <= 12.1mm)`);
+
+// F. Transparent & White Background Filtering Test
+const bgImgW = 16;
+const bgImgH = 16;
+const bgData = new Uint8Array(bgImgW * bgImgH * 4);
+for (let i = 0; i < bgImgW * bgImgH; i++) {
+  const p = i * 4;
+  if (i < 64) {
+    // Transparent area
+    bgData[p] = 255; bgData[p+1] = 0; bgData[p+2] = 0; bgData[p+3] = 0; // alpha=0
+  } else if (i < 128) {
+    // Pure white canvas area
+    bgData[p] = 255; bgData[p+1] = 255; bgData[p+2] = 255; bgData[p+3] = 255;
+  } else {
+    // Foreground emerald green
+    bgData[p] = 16; bgData[p+1] = 185; bgData[p+2] = 129; bgData[p+3] = 255;
+  }
+}
+
+const bgQuant = quantizeColors({ data: bgData, width: bgImgW, height: bgImgH }, {
+  k: 2,
+  ignoreTransparent: true,
+  ignoreWhiteBg: true
+});
+assert(bgQuant.clusters.length === 1, `Alpha and near-white pixels filtered out (got ${bgQuant.clusters.length} cluster)`);
+assert(bgQuant.clusters[0].threadCode.includes('Emerald'), 'Foreground correctly matched to Madeira Emerald');
 
 console.log('\n=============================================');
 console.log(` RESULTS: ${passedTests} passed, ${failedTests} failed, ${totalTests} total.`);

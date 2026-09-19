@@ -8,6 +8,8 @@ import { ColorLayer, StitchCommand, StitchPoint, StitchType } from './stitches/t
 import { writeDst, readDst } from './formats/dst.js';
 import { writeExp } from './formats/exp.js';
 import { parseSvgPath } from './svg/svg-parser.js';
+import { quantizeColors, matchThreadColor, MADEIRA_CATALOG } from './trace/color-quantizer.js';
+import { traceMaskToPolygons, marchSquares, ramerDouglasPeucker } from './trace/contour-tracer.js';
 
 export {
   Point2D,
@@ -25,7 +27,13 @@ export {
   writeDst,
   readDst,
   writeExp,
-  parseSvgPath
+  parseSvgPath,
+  quantizeColors,
+  matchThreadColor,
+  MADEIRA_CATALOG,
+  traceMaskToPolygons,
+  marchSquares,
+  ramerDouglasPeucker
 };
 
 /**
@@ -319,5 +327,78 @@ export class DigitizerEngine {
   exportExp() {
     const stitches = this.compileStitches();
     return writeExp(stitches);
+  }
+
+  /**
+   * Traces a raster image into discrete color layers and registers them with the engine.
+   * @param {ImageData|{data: Uint8Array|number[], width: number, height: number}} imageData
+   * @param {Object} options
+   * @returns {ColorLayer[]}
+   */
+  importImage(imageData, options = {}) {
+    const {
+      k = 3,
+      targetWidthMm = 75.0,
+      simplification = 1.2,
+      minAreaMm2 = 3.0,
+      defaultStitchType = StitchType.TWILL,
+      clearExisting = true,
+      ignoreTransparent = true,
+      ignoreWhiteBg = true
+    } = options;
+
+    if (clearExisting) {
+      this.layers = [];
+    }
+
+    const { clusters, width, height } = quantizeColors(imageData, {
+      k,
+      ignoreTransparent,
+      ignoreWhiteBg
+    });
+    const newLayers = [];
+
+    let angleCounter = 0;
+    for (const cluster of clusters) {
+      const polygons = traceMaskToPolygons(cluster.mask, width, height, {
+        targetWidthMm,
+        simplification,
+        minAreaMm2
+      });
+
+      if (polygons.length === 0) continue;
+
+      for (let pIdx = 0; pIdx < polygons.length; pIdx++) {
+        const poly = polygons[pIdx];
+        const layerId = `trace-${cluster.colorIndex}-${pIdx}`;
+        const layerName = polygons.length > 1
+          ? `${cluster.threadCode.split('(')[0].trim()} Pt.${pIdx + 1}`
+          : cluster.threadCode.split('(')[0].trim();
+
+        const layer = this.addLayer({
+          id: layerId,
+          name: layerName,
+          hex: cluster.hex,
+          threadCode: cluster.threadCode,
+          stitchType: defaultStitchType,
+          params: {
+            density: 0.4,
+            stitchLength: 3.5,
+            stagger: 0.25,
+            angle: (angleCounter * 35) % 180,
+            underlay: true
+          }
+        });
+        layer.geometry = poly;
+        newLayers.push(layer);
+      }
+      angleCounter++;
+    }
+
+    if (this.layers.length > 0) {
+      this.activeLayerId = this.layers[0].id;
+    }
+
+    return newLayers;
   }
 }
