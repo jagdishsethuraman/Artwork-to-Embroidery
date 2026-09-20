@@ -14,8 +14,12 @@ import { writeJef, readJef, JANOME_JEF_PALETTE, findNearestJanomeColor, JANOME_H
 import { parseSvgPath } from './svg/svg-parser.js';
 import { quantizeColors, matchThreadColor, MADEIRA_CATALOG } from './trace/color-quantizer.js';
 import { traceMaskToPolygons, marchSquares, ramerDouglasPeucker } from './trace/contour-tracer.js';
+import { renderTextToPolygons, generateLetteringLayer, warpPolygonAlongArc } from './typography/lettering.js';
 
 export {
+  renderTextToPolygons,
+  generateLetteringLayer,
+  warpPolygonAlongArc,
   Point2D,
   Polygon,
   splitPolygonByLine,
@@ -58,20 +62,44 @@ export {
 
 
 /**
+ * Deep clones geometry preserving Polygon, Rail, or Polyline instances.
+ */
+export function cloneGeometry(geom) {
+  if (!geom) return null;
+  if (geom instanceof Polygon || typeof geom.clone === 'function') return geom.clone();
+  if (geom.rail1 && geom.rail2) {
+    return {
+      rail1: geom.rail1.map(p => (p && typeof p.clone === 'function' ? p.clone() : new Point2D(p.x, p.y))),
+      rail2: geom.rail2.map(p => (p && typeof p.clone === 'function' ? p.clone() : new Point2D(p.x, p.y)))
+    };
+  }
+  if (Array.isArray(geom)) {
+    return geom.map(p => cloneGeometry(p));
+  }
+  return geom;
+}
+
+/**
  * Adapts geometry representation to match the requirements of the stitch weave type.
  * Ensures seamless switching between Satin, Tatami, Twill, and Running stitches.
  */
 export function convertGeometry(geom, targetType) {
   if (!geom) return null;
 
-  // Multi-polygon support (Polygon[])
   const isPolygonAreaType = targetType === StitchType.TATAMI ||
     targetType === StitchType.TWILL ||
     targetType === StitchType.RADIAL_SATIN ||
     targetType === StitchType.SPIRAL ||
     targetType === StitchType.MEANDER;
 
-  if (Array.isArray(geom) && geom.length > 0 && (geom[0] instanceof Polygon || geom[0].vertices)) {
+  // Handle array of rails [{ rail1, rail2 }, ...]
+  if (Array.isArray(geom) && geom.length > 0 && geom[0] && geom[0].rail1 && geom[0].rail2) {
+    if (targetType === StitchType.SATIN) return geom;
+    return geom.map(r => convertGeometry(r, targetType));
+  }
+
+  // Multi-polygon support (Polygon[])
+  if (Array.isArray(geom) && geom.length > 0 && (geom[0] instanceof Polygon || (geom[0] && geom[0].vertices))) {
     if (isPolygonAreaType) {
       return geom;
     }
@@ -84,6 +112,15 @@ export function convertGeometry(geom, targetType) {
 
     // Convert from Polygon to dual rails
     if (geom instanceof Polygon || geom.vertices) {
+      // If closed polygon, generate a dual-rail contour satin border
+      if (typeof geom.offset === 'function') {
+        const innerPoly = geom.offset(-2.0);
+        if (innerPoly && innerPoly.vertices && innerPoly.vertices.length >= 3) {
+          const r1 = [...geom.vertices.map(p => p.clone()), geom.vertices[0].clone()];
+          const r2 = [...innerPoly.vertices.map(p => p.clone()), innerPoly.vertices[0].clone()];
+          return { rail1: r1, rail2: r2 };
+        }
+      }
       const verts = geom.vertices || geom;
       if (verts.length >= 3) {
         const half = Math.floor(verts.length / 2);
@@ -142,11 +179,12 @@ export function convertGeometry(geom, targetType) {
 
   // 3. Target is RUNNING or BEAN (requires Point2D[] polyline)
   if (targetType === StitchType.RUNNING || targetType === StitchType.BEAN) {
-    if (Array.isArray(geom)) return geom;
+    if (Array.isArray(geom) && geom.length > 0 && geom[0].x !== undefined) return geom;
 
     // Convert from Polygon to perimeter outline loop
-    if (geom instanceof Polygon) {
-      return [...geom.vertices.map(v => v.clone()), geom.vertices[0].clone()];
+    if (geom instanceof Polygon || geom.vertices) {
+      const verts = geom.vertices || geom;
+      return [...verts.map(v => v.clone()), verts[0].clone()];
     }
 
     // Convert from Rails to centerline
@@ -255,9 +293,25 @@ export class DigitizerEngine {
   setLayerStitchType(layerId, newType) {
     const layer = this.getLayer(layerId);
     if (!layer) return;
+    if (!layer.baseGeometry && layer.geometry) {
+      layer.baseGeometry = cloneGeometry(layer.geometry);
+    }
     layer.stitchType = newType;
-    layer.geometry = convertGeometry(layer.geometry, newType);
+    layer.geometry = convertGeometry(layer.baseGeometry || layer.geometry, newType);
     return layer;
+  }
+
+  reorderLayers(fromIndex, toIndex) {
+    if (fromIndex < 0 || fromIndex >= this.layers.length || toIndex < 0 || toIndex >= this.layers.length) {
+      return this.layers;
+    }
+    const [moved] = this.layers.splice(fromIndex, 1);
+    this.layers.splice(toIndex, 0, moved);
+    return this.layers;
+  }
+
+  addTextLayer(text, options = {}) {
+    return generateLetteringLayer(this, text, options);
   }
 
   /**
@@ -365,7 +419,20 @@ export class DigitizerEngine {
         switch (layer.stitchType) {
           case StitchType.RUNNING:
           case StitchType.BEAN:
-            if (Array.isArray(geom)) {
+            if (Array.isArray(geom) && geom.length > 0 && Array.isArray(geom[0])) {
+              for (const polyline of geom) {
+                const run = generateRunningStitch(polyline, {
+                  ...layer.params,
+                  bean: layer.stitchType === StitchType.BEAN,
+                  colorIndex: lIdx
+                });
+                if (layerStitches.length > 0 && run.length > 0) {
+                  const firstPt = run[0];
+                  layerStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+                }
+                layerStitches.push(...run);
+              }
+            } else if (Array.isArray(geom)) {
               layerStitches = generateRunningStitch(geom, {
                 ...layer.params,
                 bean: layer.stitchType === StitchType.BEAN,
@@ -380,6 +447,24 @@ export class DigitizerEngine {
                 ...layer.params,
                 colorIndex: lIdx
               });
+            } else if (Array.isArray(geom) && geom.length > 0 && geom[0].rail1 && geom[0].rail2) {
+              for (let rIdx = 0; rIdx < geom.length; rIdx++) {
+                const r = geom[rIdx];
+                const pieceStitches = generateSatinColumn(r.rail1, r.rail2, {
+                  ...layer.params,
+                  colorIndex: lIdx
+                });
+                if (pieceStitches.length === 0) continue;
+                if (layerStitches.length > 0) {
+                  const lastPt = layerStitches[layerStitches.length - 1];
+                  const firstPt = pieceStitches[0];
+                  layerStitches.push(...createTieOff(lastPt.x, lastPt.y, lIdx));
+                  layerStitches.push(new StitchPoint(lastPt.x, lastPt.y, StitchCommand.TRIM, lIdx));
+                  layerStitches.push(new StitchPoint(firstPt.x, firstPt.y, StitchCommand.JUMP, lIdx));
+                  layerStitches.push(...createTieIn(firstPt.x, firstPt.y, lIdx));
+                }
+                layerStitches.push(...pieceStitches);
+              }
             }
             break;
 
@@ -659,6 +744,7 @@ export class DigitizerEngine {
         }
       });
       layer.geometry = validPolys.length === 1 ? validPolys[0] : validPolys;
+      layer.baseGeometry = cloneGeometry(layer.geometry);
       newLayers.push(layer);
     }
 

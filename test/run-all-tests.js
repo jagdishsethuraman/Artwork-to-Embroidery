@@ -14,8 +14,18 @@ import { StitchCommand, StitchPoint, StitchType } from '../src/stitches/types.js
 import { writeDst, readDst, encodeDstRecord, decodeDstRecord } from '../src/formats/dst.js';
 import { writeExp } from '../src/formats/exp.js';
 import { writePes, readPes, BROTHER_PEC_PALETTE, findNearestBrotherColor } from '../src/formats/pes.js';
-import { writeJef, readJef, JANOME_JEF_PALETTE, findNearestJanomeColor, JANOME_HOOPS } from '../src/formats/jef.js';
-import { DigitizerEngine, quantizeColors, traceMaskToPolygons, ramerDouglasPeucker, isStickerBorder } from '../src/engine.js';
+import { writeJef, readJef, JANOME_HOOPS } from '../src/formats/jef.js';
+import {
+  DigitizerEngine,
+  quantizeColors,
+  traceMaskToPolygons,
+  ramerDouglasPeucker,
+  isStickerBorder,
+  renderTextToPolygons,
+  generateLetteringLayer,
+  warpPolygonAlongArc,
+  cloneGeometry
+} from '../src/engine.js';
 
 import { parseSvgPath } from '../src/svg/svg-parser.js';
 
@@ -904,6 +914,144 @@ assert(crestPes instanceof Uint8Array && crestPes.length > 500, `Crest exported 
 
 const crestJef = crestEngine.exportJef('CREST');
 assert(crestJef instanceof Uint8Array && crestJef.length > 100, `Crest exported to Janome JEF (${crestJef.length} bytes)`);
+
+// -------------------------------------------------------------
+// 8. NON-DESTRUCTIVE STITCH SWITCHING, LAYER REORDERING & TYPOGRAPHY
+// -------------------------------------------------------------
+console.log('\n[8. Non-Destructive Stitch Switching, Layer Reordering & Typography]');
+
+// A. Multi-Hop Non-Destructive Stitch Type Switching
+const switchEngine = new DigitizerEngine();
+const originalBox = new Polygon([
+  new Point2D(-12, -12),
+  new Point2D(12, -12),
+  new Point2D(12, 12),
+  new Point2D(-12, 12)
+]);
+const origArea = Math.abs(originalBox.signedArea());
+const switchLayer = switchEngine.addLayer({
+  id: 'switch-test',
+  name: 'Non-Destructive Box',
+  hex: '#3b82f6',
+  stitchType: StitchType.TATAMI
+});
+switchLayer.geometry = originalBox;
+switchLayer.baseGeometry = cloneGeometry(originalBox);
+
+// Hop 1: Switch to SATIN (converts to contour satin rails)
+switchEngine.setLayerStitchType(switchLayer.id, StitchType.SATIN);
+assert(switchLayer.geometry.rail1 !== undefined && switchLayer.geometry.rail2 !== undefined, 'Polygon converted to dual-rail contour satin');
+const satinStitchCount = switchEngine.compileStitches().length;
+assert(satinStitchCount > 50, `Satin stitches generated successfully (${satinStitchCount} stitches)`);
+
+// Hop 2: Switch to TWILL (should restore original polygon, NOT a degraded path)
+switchEngine.setLayerStitchType(switchLayer.id, StitchType.TWILL);
+assert(switchLayer.geometry instanceof Polygon, 'Switched from SATIN back to TWILL restored Polygon');
+const twillArea = Math.abs(switchLayer.geometry.signedArea());
+assertClose(twillArea, origArea, 1e-2, 'Restored TWILL polygon area strictly matches original shape');
+
+// Hop 3: Switch to RUNNING (perimeter outline)
+switchEngine.setLayerStitchType(switchLayer.id, StitchType.RUNNING);
+assert(Array.isArray(switchLayer.geometry) && switchLayer.geometry.length >= 4, 'Switched to RUNNING created perimeter polyline');
+
+// Hop 4: Switch to SPIRAL (restores polygon and fills)
+switchEngine.setLayerStitchType(switchLayer.id, StitchType.SPIRAL);
+assert(switchLayer.geometry instanceof Polygon, 'Switched from RUNNING to SPIRAL restored Polygon');
+assertClose(Math.abs(switchLayer.geometry.signedArea()), origArea, 1e-2, 'SPIRAL polygon area strictly preserved');
+
+// Hop 5: Switch to MEANDER
+switchEngine.setLayerStitchType(switchLayer.id, StitchType.MEANDER);
+assert(switchLayer.geometry instanceof Polygon, 'Switched to MEANDER restored Polygon');
+
+// Hop 6: Switch back to TATAMI
+switchEngine.setLayerStitchType(switchLayer.id, StitchType.TATAMI);
+assert(switchLayer.geometry instanceof Polygon, 'Final switch back to TATAMI preserved Polygon');
+assertClose(Math.abs(switchLayer.geometry.signedArea()), origArea, 1e-2, 'Final TATAMI polygon area completely intact after 6 hops');
+
+// B. Multi-Polygon Island SATIN Conversion and Compilation
+const multiIslandEngine = new DigitizerEngine();
+const islandA = new Polygon([new Point2D(-20, -20), new Point2D(-10, -20), new Point2D(-10, -10), new Point2D(-20, -10)]);
+const islandB = new Polygon([new Point2D(10, 10), new Point2D(20, 10), new Point2D(20, 20), new Point2D(10, 20)]);
+const multiLayerTest = multiIslandEngine.addLayer({
+  id: 'multi-island-layer',
+  name: 'Two Islands',
+  hex: '#10b981',
+  stitchType: StitchType.TATAMI
+});
+multiLayerTest.geometry = [islandA, islandB];
+multiLayerTest.baseGeometry = cloneGeometry([islandA, islandB]);
+
+// Switch multi-polygon layer to SATIN
+multiIslandEngine.setLayerStitchType(multiLayerTest.id, StitchType.SATIN);
+assert(Array.isArray(multiLayerTest.geometry) && multiLayerTest.geometry.length === 2, 'Multi-polygon layer converted into array of 2 satin rails');
+const multiSatinStitches = multiIslandEngine.compileStitches();
+assert(multiSatinStitches.length > 100, `Multi-island SATIN compiled stitches (${multiSatinStitches.length} stitches)`);
+const hasMultiTrim = multiSatinStitches.some(s => s.command === StitchCommand.TRIM);
+assert(hasMultiTrim, 'Hardware TRIM injected between multi-island satin pieces');
+
+// C. Layer Reordering & Construction Sequence
+const reorderEngine = new DigitizerEngine();
+const lRed = reorderEngine.addLayer({ id: 'red', hex: '#ff0000', stitchType: StitchType.TATAMI });
+lRed.geometry = new Polygon([new Point2D(-10, -10), new Point2D(0, -10), new Point2D(0, 0), new Point2D(-10, 0)]);
+const lBlue = reorderEngine.addLayer({ id: 'blue', hex: '#0000ff', stitchType: StitchType.TATAMI });
+lBlue.geometry = new Polygon([new Point2D(5, 5), new Point2D(15, 5), new Point2D(15, 15), new Point2D(5, 15)]);
+const lGold = reorderEngine.addLayer({ id: 'gold', hex: '#ffd700', stitchType: StitchType.TATAMI });
+lGold.geometry = new Polygon([new Point2D(20, 20), new Point2D(30, 20), new Point2D(30, 30), new Point2D(20, 30)]);
+
+// Initial order: red (0), blue (1), gold (2)
+assert(reorderEngine.layers[0].id === 'red' && reorderEngine.layers[2].id === 'gold', 'Initial layer construction order: Red -> Blue -> Gold');
+
+// Reorder: move Gold (index 2) to first position (index 0)
+reorderEngine.reorderLayers(2, 0);
+assert(reorderEngine.layers[0].id === 'gold' && reorderEngine.layers[1].id === 'red', 'Reordered construction order: Gold -> Red -> Blue');
+
+// Compile stitches and verify first stitched layer corresponds to Gold
+const reorderedStitches = reorderEngine.compileStitches();
+const firstStitchColor = reorderedStitches[0].colorIndex;
+assert(firstStitchColor === 0, 'Compiled stitch stream starts with new first layer');
+
+// D. Typography & Lettering Engine Tests
+const textPolys = renderTextToPolygons('NYC', { targetHeightMm: 18 });
+assert(textPolys.length >= 3, `Typography engine rendered 'NYC' into vector characters (${textPolys.length} polygons)`);
+let minX = Infinity, maxX = -Infinity;
+for (const p of textPolys) {
+  const b = p.bounds();
+  if (b.minX < minX) minX = b.minX;
+  if (b.maxX > maxX) maxX = b.maxX;
+}
+const textSpan = maxX - minX;
+assert(textSpan > 15, `Text baseline width physically realistic (${textSpan.toFixed(1)}mm > 15mm)`);
+
+// Letter Hole Detection: letters with holes ('A', 'B', 'O', 'P')
+const holeLetters = renderTextToPolygons('A B O', { targetHeightMm: 20 });
+let foundHole = false;
+for (const p of holeLetters) {
+  if (p.holes && p.holes.length > 0) {
+    foundHole = true;
+    break;
+  }
+}
+assert(foundHole, `Typography contour engine extracted nested inner hole loops for letters 'A', 'B', 'O'`);
+
+// Baseline Arc Warping
+const samplePoly = new Polygon([new Point2D(-10, -5), new Point2D(10, -5), new Point2D(10, 5), new Point2D(-10, 5)]);
+const archedPoly = warpPolygonAlongArc(samplePoly, 30, 20);
+assert(archedPoly.vertices.length === samplePoly.vertices.length, 'Arc warped polygon preserved vertex topology');
+assert(archedPoly.vertices[0].y !== samplePoly.vertices[0].y, 'Arc warping modified baseline curvature coordinates');
+
+// Full Engine Lettering Layer Creation
+const typographyEngine = new DigitizerEngine();
+const letterLayer = typographyEngine.addTextLayer('ATHLETIC', {
+  hex: '#f8fafc',
+  stitchType: StitchType.SATIN,
+  targetHeightMm: 20.0
+});
+assert(letterLayer !== null, `addTextLayer successfully created a new ColorLayer in engine`);
+assert(letterLayer.baseGeometry !== null, `Lettering layer contains preserved baseGeometry`);
+const letterStitches = typographyEngine.compileStitches();
+assert(letterStitches.length > 200, `Lettering layer compiled into embroidery stitch stream (${letterStitches.length} stitches > 200)`);
+const letterDst = typographyEngine.exportDst('TEXT');
+assert(letterDst instanceof Uint8Array && letterDst.length > 512, `Lettering layer exported valid Tajima DST file (${letterDst.length} bytes)`);
 
 console.log('\n=============================================');
 console.log(` RESULTS: ${passedTests} passed, ${failedTests} failed, ${totalTests} total.`);

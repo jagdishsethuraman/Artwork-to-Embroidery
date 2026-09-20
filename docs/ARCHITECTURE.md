@@ -110,13 +110,14 @@ class StitchPoint {
   colorIndex: number;
 }
 
-// Consolidated spool layer for multi-polygon channels
+// Consolidated spool layer for multi-polygon channels and non-destructive switching
 class ColorLayer {
   id: string;
   name: string;
   hex: string;
   stitchType: StitchType;
-  geometry: Polygon | Polygon[];
+  geometry: Polygon | Polygon[] | { rail1: Point2D[], rail2: Point2D[] } | Point2D[];
+  baseGeometry: Polygon | Polygon[] | { rail1: Point2D[], rail2: Point2D[] } | Point2D[]; // Pristine cached source
   params: StitchParams;
   getPolygons(): Polygon[];
 }
@@ -124,7 +125,23 @@ class ColorLayer {
 
 ---
 
-## 4. Commercial Compliance Matrix
+## 4. Typography & Non-Destructive Geometry Model
+
+### Non-Destructive Geometry Architecture
+To prevent destructive loss when converting between filled areas (`TATAMI`, `SPIRAL`, `MEANDER`, `TWILL`), column borders (`SATIN`), and perimeter outlines (`RUNNING`, `BEAN`), `ColorLayer` maintains a pristine `baseGeometry` cache.
+- `setLayerStitchType(id, type)` always derives target geometry from `baseGeometry` rather than mutating previous geometry representations.
+- Guarantees lossless round-trip transformations across arbitrary sequence hops.
+
+### In-Canvas Typography Engine (`src/typography/lettering.js`)
+- **Dual Rasterization Strategy:**
+  - **Browser Runtime:** High-resolution HTML5 Canvas 2D rasterization with font fallback (`Impact`, `Times New Roman`, `Brush Script`, `Courier New`).
+  - **Headless Node.js:** Scaled 8x12 vector bitmap font with 4-connected airtight loops for CLI/testing environments.
+- **Topological Hole Detection:** Marching Squares with containment depth analysis automatically detects nested inner holes (`A`, `B`, `O`, `P`, `D`, `0`, `8`) and nests them into outer character boundary polygons.
+- **Baseline Arc Warping:** Polar coordinate transformation ($r = \frac{W}{\theta_{\text{total}}}$, $\theta = \frac{x}{W}\theta_{\text{total}}$) smoothly bends character contours along arcs ($-60^\circ$ to $+60^\circ$).
+
+---
+
+## 5. Commercial Compliance Matrix
 
 | Rule | Threshold | Engine Implementation |
 | :--- | :--- | :--- |

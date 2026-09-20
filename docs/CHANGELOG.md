@@ -4,6 +4,36 @@ All notable changes to the Artwork-to-Embroidery Engine are documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-09-20
+
+### Added
+- **In-Canvas Typography & Satin Lettering Engine (`src/typography/lettering.js`):**
+  - Universal text-to-vector polygon rasterizer supporting Browser (high-resolution HTML5 Canvas 2D) and Headless Node.js (airtight scaled 8x12 vector bitmap font).
+  - Contour hierarchy analysis detecting outer character boundaries and inner holes (`A`, `B`, `O`, `P`, `D`, `0`, `8`, etc.).
+  - Baseline arc warping (`warpPolygonAlongArc`) bending text along circular arcs ($-60^\circ$ to $+60^\circ$) with preserved vertex topology.
+  - Multi-style typography selection: Varsity (Athletic Block), Sans-Serif, Elegant Serif, Script / Cursive, and Technical Monospace.
+  - `DigitizerEngine.prototype.addTextLayer(text, options)`: Creates configured embroidery layers with density, pull compensation, underlays, and satin/tatami stitch generation.
+  - Studio Lettering Modal (`#letteringModal` & `#btnSidebarLettering`): Live font preview, height slider, arc slider, Madeira thread color swatches, and instant stitch generation.
+- **Draggable Layer Construction Sequence (`public/app.js` & `public/index.html`):**
+  - HTML5 drag-and-drop layer reordering in left sidebar `#layersContainer`.
+  - Added drag handles (`⠿`), layer sequence indicators (`#1`, `#2`, ...), and `▲`/`▼` quick reorder buttons on every layer card.
+  - Directly reorders `engine.layers`, dynamically altering the physical embroidery construction sequence (underlay foundations before top detail satin stitches) and machine color stop sequence.
+  - Full Undo/Redo stack integration with state persistence.
+- **Multi-Polygon Island Satin Rail Compiler (`src/engine.js`):**
+  - Extended `compileStitches()` to support arrays of satin rail pairs (`[{ rail1, rail2 }, ...]`).
+  - Automatically synthesizes inter-island tie-off, hardware TRIM, jump travel, and tie-in between disconnected satin letters/islands.
+- **Comprehensive Test Suite Expansion (`test/run-all-tests.js`):**
+  - Added Section 8 tests verifying 6-hop non-destructive geometry preservation, multi-island satin compilation with TRIMs, layer reordering stitch stream verification, and typography generation with hole detection and arc warping (total 160/160 tests passing).
+
+### Fixed
+- **Satin Stitch Type Conversion Distortion (`src/engine.js` & `src/stitches/types.js`):**
+  - Introduced `ColorLayer.prototype.baseGeometry` and non-destructive `cloneGeometry()`.
+  - Previously, switching a layer to `SATIN` permanently overwrote its geometry with perimeter contour rails, causing subsequent switches to other weaves to degrade into thin ribbons.
+  - `setLayerStitchType` now caches pristine vector geometry in `baseGeometry` and derives each stitch type's geometry from `baseGeometry`, ensuring lossless multi-hop switching.
+  - Enhanced `convertGeometry` to handle `Polygon` to contour satin border via `poly.offset(-2.0)`, multi-polygon `Polygon[]` to array of rails, and arrays of rails back to polygons.
+
+---
+
 ## [1.5.0] - 2026-09-20
 
 ### Added

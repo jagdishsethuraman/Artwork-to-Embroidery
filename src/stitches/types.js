@@ -64,6 +64,7 @@ export class ColorLayer {
       ...params
     };
     this.geometry = null; // Polygon, Polygon[], Rails, or Polyline
+    this.baseGeometry = null; // Pristine ground-truth geometry before stitch type conversion
   }
 
   getPolygons() {

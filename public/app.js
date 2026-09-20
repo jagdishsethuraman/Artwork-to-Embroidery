@@ -13,7 +13,9 @@ import {
   matchThreadColor,
   MADEIRA_CATALOG,
   traceMaskToPolygons,
-  isStickerBorder
+  isStickerBorder,
+  generateLetteringLayer,
+  renderTextToPolygons
 } from '../src/engine.js';
 
 
@@ -59,7 +61,8 @@ function serializeState() {
       threadCode: l.threadCode,
       stitchType: l.stitchType,
       params: { ...l.params },
-      geometry: cloneGeometry(l.geometry)
+      geometry: cloneGeometry(l.geometry),
+      baseGeometry: cloneGeometry(l.baseGeometry || l.geometry)
     })),
     activeLayerId: engine.activeLayerId,
     activePreset
@@ -85,6 +88,7 @@ function restoreState(state) {
       params: { ...l.params }
     });
     layer.geometry = cloneGeometry(l.geometry);
+    layer.baseGeometry = cloneGeometry(l.baseGeometry || l.geometry);
     return layer;
   });
   engine.activeLayerId = state.activeLayerId;
@@ -344,6 +348,12 @@ function loadPreset(name) {
     emblemLayer.geometry = starPoly;
   }
 
+  engine.layers.forEach(l => {
+    if (l.geometry && !l.baseGeometry) {
+      l.baseGeometry = cloneGeometry(l.geometry);
+    }
+  });
+
   engine.activeLayerId = engine.layers[0].id;
   updateLayersUI();
   updateStats();
@@ -358,6 +368,9 @@ function updateLayersUI() {
   engine.layers.forEach((layer, idx) => {
     const card = document.createElement('div');
     card.className = `layer-card ${layer.id === engine.activeLayerId ? 'active' : ''}`;
+    card.draggable = true;
+    card.setAttribute('data-index', idx);
+
     card.onclick = () => {
       engine.activeLayerId = layer.id;
       updateLayersUI();
@@ -365,30 +378,108 @@ function updateLayersUI() {
       render();
     };
 
+    // Drag-and-drop sequencing
+    card.addEventListener('dragstart', (e) => {
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(idx));
+    });
+
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      document.querySelectorAll('.layer-card').forEach(c => {
+        c.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+    });
+
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = card.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        card.classList.add('drag-over-top');
+        card.classList.remove('drag-over-bottom');
+      } else {
+        card.classList.add('drag-over-bottom');
+        card.classList.remove('drag-over-top');
+      }
+    });
+
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+
+    card.addEventListener('drop', (e) => {
+      e.preventDefault();
+      card.classList.remove('drag-over-top', 'drag-over-bottom');
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      if (!isNaN(fromIdx) && fromIdx !== idx) {
+        pushState();
+        engine.reorderLayers(fromIdx, idx);
+        updateLayersUI();
+        updateStats();
+        resetPlayhead();
+        render();
+      }
+    });
+
     const islandCount = layer.getPolygons ? layer.getPolygons().length : 1;
     const islandBadge = islandCount > 1
-      ? `<span class="badge" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;margin-right:6px;font-size:10px;">${islandCount} islands</span>`
+      ? `<span class="badge" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;margin-right:4px;font-size:9.5px;">${islandCount} isl</span>`
       : '';
 
     const colorDot = `<span class="color-badge" style="background:${layer.hex};"></span>`;
     card.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="drag-handle" title="Drag to reorder stitch sequence" style="cursor:grab;color:#64748b;font-size:13px;padding:2px 2px;user-select:none;">⠿</span>
+          <span style="font-size:10px;font-weight:800;color:#64748b;min-width:18px;">#${idx + 1}</span>
           ${colorDot}
           <div>
-            <div style="font-weight:700;font-size:13px;color:#f8fafc;">${layer.name}</div>
-            <div style="font-size:11px;color:#94a3b8;">${layer.threadCode}</div>
+            <div style="font-weight:700;font-size:12.5px;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;">${layer.name}</div>
+            <div style="font-size:10px;color:#94a3b8;">${layer.threadCode}</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;">
+        <div style="display:flex;align-items:center;gap:3px;">
           ${islandBadge}
-          <span class="badge">${layer.stitchType.toUpperCase()}</span>
+          <span class="badge" style="font-size:9.5px;">${layer.stitchType.toUpperCase()}</span>
+          <div class="layer-order-btns" style="display:flex;flex-direction:column;gap:1px;margin-left:3px;">
+            <button class="order-btn btn-up" data-idx="${idx}" title="Move earlier in embroidery sequence" style="background:transparent;border:none;color:#94a3b8;font-size:9px;cursor:pointer;padding:1px 2px;line-height:1;${idx === 0 ? 'opacity:0.2;cursor:default;' : ''}">▲</button>
+            <button class="order-btn btn-down" data-idx="${idx}" title="Move later in embroidery sequence" style="background:transparent;border:none;color:#94a3b8;font-size:9px;cursor:pointer;padding:1px 2px;line-height:1;${idx === engine.layers.length - 1 ? 'opacity:0.2;cursor:default;' : ''}">▼</button>
+          </div>
         </div>
       </div>
     `;
+
+    // Click handlers for up/down buttons
+    const btnUp = card.querySelector('.btn-up');
+    if (btnUp && idx > 0) {
+      btnUp.onclick = (e) => {
+        e.stopPropagation();
+        pushState();
+        engine.reorderLayers(idx, idx - 1);
+        updateLayersUI();
+        updateStats();
+        resetPlayhead();
+        render();
+      };
+    }
+    const btnDown = card.querySelector('.btn-down');
+    if (btnDown && idx < engine.layers.length - 1) {
+      btnDown.onclick = (e) => {
+        e.stopPropagation();
+        pushState();
+        engine.reorderLayers(idx, idx + 1);
+        updateLayersUI();
+        updateStats();
+        resetPlayhead();
+        render();
+      };
+    }
+
     container.appendChild(card);
   });
-
 
   syncParamInputs();
 }
@@ -706,6 +797,7 @@ function applyKnifeSplit(p1, p2) {
   if (type === 'polygon') {
     // Both pieces remain closed Polygons with identical stitch type (Tatami/Twill)
     layer.geometry = parts[0];
+    layer.baseGeometry = cloneGeometry(parts[0]);
 
     const newLayer = engine.addLayer({
       id: `layer-${Date.now()}`,
@@ -716,9 +808,11 @@ function applyKnifeSplit(p1, p2) {
       params: { ...layer.params, angle: (layer.params.angle || 0) + 45 }
     });
     newLayer.geometry = parts[1];
+    newLayer.baseGeometry = cloneGeometry(parts[1]);
   } else if (type === 'satin') {
     // Both pieces remain clean dual-rail Satin columns!
     layer.geometry = parts[0];
+    layer.baseGeometry = cloneGeometry(parts[0]);
 
     const newLayer = engine.addLayer({
       id: `layer-${Date.now()}`,
@@ -729,9 +823,11 @@ function applyKnifeSplit(p1, p2) {
       params: { ...layer.params }
     });
     newLayer.geometry = parts[1];
+    newLayer.baseGeometry = cloneGeometry(parts[1]);
   } else if (type === 'polyline') {
     // Both pieces remain running polylines
     layer.geometry = parts[0];
+    layer.baseGeometry = cloneGeometry(parts[0]);
 
     const newLayer = engine.addLayer({
       id: `layer-${Date.now()}`,
@@ -742,6 +838,7 @@ function applyKnifeSplit(p1, p2) {
       params: { ...layer.params }
     });
     newLayer.geometry = parts[1];
+    newLayer.baseGeometry = cloneGeometry(parts[1]);
   }
 
   updateLayersUI();
@@ -1671,6 +1768,84 @@ function resizeCanvas() {
   render();
 }
 window.addEventListener('resize', resizeCanvas);
+
+// Typography Lettering Modal Event Handlers
+const btnSidebarLettering = document.getElementById('btnSidebarLettering');
+const letteringModal = document.getElementById('letteringModal');
+const closeLetteringBtn = document.getElementById('closeLetteringBtn');
+const letteringHeightInput = document.getElementById('letteringHeightInput');
+const letteringHeightVal = document.getElementById('letteringHeightVal');
+const letteringArcInput = document.getElementById('letteringArcInput');
+const letteringArcVal = document.getElementById('letteringArcVal');
+const btnGenerateLettering = document.getElementById('btnGenerateLettering');
+
+if (btnSidebarLettering && letteringModal) {
+  btnSidebarLettering.onclick = () => {
+    letteringModal.style.display = 'flex';
+  };
+  if (closeLetteringBtn) {
+    closeLetteringBtn.onclick = () => {
+      letteringModal.style.display = 'none';
+    };
+  }
+
+  if (letteringHeightInput && letteringHeightVal) {
+    letteringHeightInput.oninput = (e) => {
+      letteringHeightVal.innerText = `${e.target.value} mm`;
+    };
+  }
+
+  if (letteringArcInput && letteringArcVal) {
+    letteringArcInput.oninput = (e) => {
+      letteringArcVal.innerText = `${e.target.value}°`;
+    };
+  }
+
+  if (btnGenerateLettering) {
+    btnGenerateLettering.onclick = () => {
+      const text = document.getElementById('letteringTextInput').value.trim();
+      if (!text) {
+        alert('Please enter text to generate lettering.');
+        return;
+      }
+      const font = document.getElementById('letteringFontSelect').value;
+      const stitchStyle = document.getElementById('letteringStitchSelect').value;
+      const height = parseFloat(letteringHeightInput.value) || 20;
+      const arc = parseFloat(letteringArcInput.value) || 0;
+      const colorRaw = document.getElementById('letteringColorSelect').value;
+      const [hex, threadCode] = colorRaw.split('|');
+
+      let stitchType = StitchType.SATIN;
+      if (stitchStyle === 'tatami') stitchType = StitchType.TATAMI;
+      else if (stitchStyle === 'twill') stitchType = StitchType.TWILL;
+      else if (stitchStyle === 'running') stitchType = StitchType.RUNNING;
+
+      pushState();
+
+      const newLayer = engine.addTextLayer(text, {
+        name: `Text: "${text}"`,
+        hex,
+        threadCode,
+        stitchType,
+        targetHeightMm: height,
+        fontFamily: font,
+        arcAngle: arc
+      });
+
+      if (newLayer) {
+        engine.activeLayerId = newLayer.id;
+        letteringModal.style.display = 'none';
+        updateLayersUI();
+        updateStats();
+        resetPlayhead();
+        fitToScreen();
+        render();
+      } else {
+        alert('Could not generate vector contours for text. Please try another font or string.');
+      }
+    };
+  }
+}
 
 // Kick off
 resizeCanvas();
