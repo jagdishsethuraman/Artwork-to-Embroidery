@@ -158,6 +158,7 @@ const HOOP_PRESETS = {
 };
 let activeHoopKey = '100x100';
 let showGrid = true;
+let showVignette = true;
 
 // Canvas Elements
 const canvas = document.getElementById('stitchCanvas');
@@ -680,14 +681,18 @@ function render() {
   ctx.save();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Fabric Background (Vercel Vignette: Ambient overhead spotlight centered at hoop origin)
-  const gradRadius = Math.max(canvas.width, canvas.height) * 0.75;
-  const vignetteGrad = ctx.createRadialGradient(panX, panY, 0, panX, panY, gradRadius);
-  vignetteGrad.addColorStop(0, '#14161f');
-  vignetteGrad.addColorStop(0.42, '#0a0c12');
-  vignetteGrad.addColorStop(0.85, '#000000');
-  vignetteGrad.addColorStop(1, '#000000');
-  ctx.fillStyle = vignetteGrad;
+  // Fabric Background (Vercel Vignette: Ambient overhead spotlight centered at hoop origin, or pure OLED void)
+  if (showVignette) {
+    const gradRadius = Math.max(canvas.width, canvas.height) * 0.75;
+    const vignetteGrad = ctx.createRadialGradient(panX, panY, 0, panX, panY, gradRadius);
+    vignetteGrad.addColorStop(0, '#14161f');
+    vignetteGrad.addColorStop(0.42, '#0a0c12');
+    vignetteGrad.addColorStop(0.85, '#000000');
+    vignetteGrad.addColorStop(1, '#000000');
+    ctx.fillStyle = vignetteGrad;
+  } else {
+    ctx.fillStyle = '#000000';
+  }
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw millimeter grid (10mm major / 1mm minor)
@@ -2181,6 +2186,9 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key.toLowerCase() === 'g') {
     e.preventDefault();
     toggleGrid();
+  } else if (e.key.toLowerCase() === 'b') {
+    e.preventDefault();
+    toggleVignette();
   } else if (e.key.toLowerCase() === 'h') {
     e.preventDefault();
     cycleHoop();
@@ -2279,6 +2287,22 @@ function toggleGrid() {
   render();
 }
 
+function toggleVignette() {
+  showVignette = !showVignette;
+  const btn = document.getElementById('btnToggleVignette');
+  if (btn) {
+    if (showVignette) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+  const stage = document.querySelector('.canvas-stage');
+  if (stage) {
+    stage.style.background = showVignette 
+      ? 'radial-gradient(circle at 50% 50%, #14161f 0%, #000000 85%)' 
+      : '#000000';
+  }
+  render();
+}
+
 function cycleHoop() {
   const keys = Object.keys(HOOP_PRESETS);
   const currIdx = keys.indexOf(activeHoopKey);
@@ -2331,6 +2355,9 @@ if (btnZoomOut) btnZoomOut.onclick = () => zoomByFactor(0.8, canvas.width / 2, c
 
 const btnToggleGrid = document.getElementById('btnToggleGrid');
 if (btnToggleGrid) btnToggleGrid.onclick = toggleGrid;
+
+const btnToggleVignette = document.getElementById('btnToggleVignette');
+if (btnToggleVignette) btnToggleVignette.onclick = toggleVignette;
 
 function triggerRegeneration() {
   updateLayersUI();
