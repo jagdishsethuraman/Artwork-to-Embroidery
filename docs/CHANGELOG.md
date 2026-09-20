@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Hairline Range Sliders:** Upgraded parameter sliders to 3px hairline tracks with 14px crisp white circular thumbs (`border: 2px solid #000000`).
   - **CAD Virtual Needle Reticle:** Retuned reticle radar glow to Vercel signature electric blue (`#0070f3`) and typography to `Geist Mono`.
   - **Dynamically Moldable Panels:** Enforced `flex-shrink: 0` and `min-height: 46px` on `.layer-card` elements with dedicated `overflow-y: auto` layer containers, preventing vertical squishing on constrained viewports.
+  - **Vercel Vignette Canvas Void Lighting:** Implemented ambient spotlight radial gradient centered dynamically at the hoop origin and canvas stage (`#14161f` -> `#0a0c12` -> `#000000`), lifting black thread contours and CAD hoop marks into optical relief while retaining true pitch black at the viewport margins.
   - **Header Action Workflow:** Integrated `Add Lettering` modal trigger directly into the primary top navigation header alongside `Import Artwork` and `Export Embroidery`.
 
 ## [1.9.0] - 2026-09-20

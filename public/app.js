@@ -680,8 +680,14 @@ function render() {
   ctx.save();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Fabric Background (Subtle weave grid)
-  ctx.fillStyle = '#000000';
+  // Fabric Background (Vercel Vignette: Ambient overhead spotlight centered at hoop origin)
+  const gradRadius = Math.max(canvas.width, canvas.height) * 0.75;
+  const vignetteGrad = ctx.createRadialGradient(panX, panY, 0, panX, panY, gradRadius);
+  vignetteGrad.addColorStop(0, '#14161f');
+  vignetteGrad.addColorStop(0.42, '#0a0c12');
+  vignetteGrad.addColorStop(0.85, '#000000');
+  vignetteGrad.addColorStop(1, '#000000');
+  ctx.fillStyle = vignetteGrad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw millimeter grid (10mm major / 1mm minor)
@@ -1148,7 +1154,7 @@ function drawMillimeterGrid() {
   }
 
   // Origin Crosshair
-  ctx.strokeStyle = 'rgba(14, 165, 233, 0.35)';
+  ctx.strokeStyle = 'rgba(0, 112, 243, 0.45)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(panX - 20, panY);
