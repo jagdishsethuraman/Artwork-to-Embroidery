@@ -1591,6 +1591,18 @@ document.getElementById('exportExpBtn').onclick = () => {
   downloadBlob(blob, `${activePreset}_output.exp`);
 };
 
+document.getElementById('exportPesBtn').onclick = () => {
+  const pesBytes = engine.exportPes('TRACE_PES');
+  const blob = new Blob([pesBytes], { type: 'application/octet-stream' });
+  downloadBlob(blob, `${activePreset}_output.pes`);
+};
+
+document.getElementById('exportJefBtn').onclick = () => {
+  const jefBytes = engine.exportJef('TRACE_JEF');
+  const blob = new Blob([jefBytes], { type: 'application/octet-stream' });
+  downloadBlob(blob, `${activePreset}_output.jef`);
+};
+
 // Canvas Resize
 function resizeCanvas() {
   const container = canvas.parentElement;

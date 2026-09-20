@@ -7,6 +7,8 @@ import { generateTatamiFill } from './stitches/tatami.js';
 import { ColorLayer, StitchCommand, StitchPoint, StitchType, createTieIn, createTieOff } from './stitches/types.js';
 import { writeDst, readDst } from './formats/dst.js';
 import { writeExp } from './formats/exp.js';
+import { writePes, readPes, BROTHER_PEC_PALETTE, findNearestBrotherColor } from './formats/pes.js';
+import { writeJef, readJef, JANOME_JEF_PALETTE, findNearestJanomeColor, JANOME_HOOPS } from './formats/jef.js';
 import { parseSvgPath } from './svg/svg-parser.js';
 import { quantizeColors, matchThreadColor, MADEIRA_CATALOG } from './trace/color-quantizer.js';
 import { traceMaskToPolygons, marchSquares, ramerDouglasPeucker } from './trace/contour-tracer.js';
@@ -27,6 +29,15 @@ export {
   writeDst,
   readDst,
   writeExp,
+  writePes,
+  readPes,
+  BROTHER_PEC_PALETTE,
+  findNearestBrotherColor,
+  writeJef,
+  readJef,
+  JANOME_JEF_PALETTE,
+  findNearestJanomeColor,
+  JANOME_HOOPS,
   parseSvgPath,
   quantizeColors,
   matchThreadColor,
@@ -498,6 +509,26 @@ export class DigitizerEngine {
   exportExp() {
     const stitches = this.compileStitches();
     return writeExp(stitches);
+  }
+
+  /**
+   * Exports compiled stitches as a Brother .PES (v1 with embedded #PEC0001) binary buffer.
+   * Maps layer colors to standard Brother 64-color palette table.
+   */
+  exportPes(label = 'DESIGN') {
+    const stitches = this.compileStitches();
+    const threads = this.layers.map(l => l.hex || l.color || '#000000');
+    return writePes(stitches, { label, threads });
+  }
+
+  /**
+   * Exports compiled stitches as a Janome .JEF binary buffer with hoop boundary code.
+   * Maps layer colors to standard Janome 79-color palette table and centers design coordinates.
+   */
+  exportJef(label = 'DESIGN') {
+    const stitches = this.compileStitches();
+    const threads = this.layers.map(l => l.hex || l.color || '#000000');
+    return writeJef(stitches, { label, threads });
   }
 
   /**

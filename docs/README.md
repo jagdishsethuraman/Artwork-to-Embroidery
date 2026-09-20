@@ -20,4 +20,4 @@ To verify the entire pipeline and all commercial test assertions:
 ```bash
 node test/run-all-tests.js
 ```
-Currently **95 unit and integration tests passing** covering geometry, weave generation, binary encoding, hole avoidance, multi-polygon consolidation, and star branch optimization.
+Currently **120 unit and integration tests passing** covering geometry, weave generation, binary encoding (DST, EXP, PES, JEF), hole avoidance, multi-polygon consolidation, and star branch optimization.

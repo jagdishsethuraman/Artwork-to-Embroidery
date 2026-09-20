@@ -21,7 +21,9 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.dst': 'application/octet-stream',
-  '.exp': 'application/octet-stream'
+  '.exp': 'application/octet-stream',
+  '.pes': 'application/octet-stream',
+  '.jef': 'application/octet-stream'
 };
 
 const server = http.createServer((req, res) => {

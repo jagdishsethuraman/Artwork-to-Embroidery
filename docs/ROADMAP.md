@@ -1,59 +1,64 @@
 # Product & Engineering Roadmap
 
-This document outlines the strategic roadmap and future milestones for the Artwork-to-Embroidery Engine.
+This document outlines the strategic roadmap and release milestones for the Artwork-to-Embroidery Engine.
 
 ---
 
 ## 🗺️ Milestone Summary
 
 ```
- Phase 1 & 2 (Complete) ──► Phase 3 (Current Focus) ──► Phase 4 (Mid-Term) ──► Phase 5 (Long-Term)
- • Core Geometry & Weave   • Radial & Spiral Weaves    • Local ONNX AI SAM    • 3D Puff / Appliqué
- • CIELAB Quantization     • Web Worker Offloading     • Typography Engine     • Machine Fleet Sync
- • Auto-Trims & Anchors    • Multi-Format Exporters    • Thread Blending       • Web Serial Direct
- • Canonical Branching       (.PES, .JEF, .VP3)          (Photo-Stitch)          (Live Hardware)
+ Phase 1 & 2 (Complete) ──► Phase 3 (v1.4.1 Complete ──► v1.5 Next) ──► Phase 4 (v1.6 - v2.0) ──► Phase 5 (v3.0)
+ • Core Geometry & Weave   • Multi-Format Exporters   • Radial & Spiral Weaves  • Typography Engine    • 3D Puff / Appliqué
+ • CIELAB Quantization     • Brother .PES (PEC0001)   • Meander/Stippling Fill  • Web Worker 4K        • Machine Fleet Sync
+ • Auto-Trims & Anchors    • Janome .JEF (116B LE)    • Husqvarna .VP3          • Local ONNX AI SAM    • Web Serial Direct
+ • Canonical Branching     • 120/120 Unit Tests       • Singer .XXX             • Thread Blending      • Live Telemetry
 ```
 
 ---
 
-## 🚀 Phase 3: Advanced Fill Geometry & Multi-Format Exporters (Target: v1.5 - v1.6)
+## ✅ Completed Milestones
+
+### v1.4.1 (Current Release) — Multi-Format Commercial Exporters
+- [x] **Brother / Baby Lock (`.PES` v1 / `#PEC0001`):** Native `#PES0001` container with 22-byte header, embedded `#PEC0001` block, 64-color Brother thread palette mapping, 7-bit/12-bit signed delta encoding, color change opcodes, and blank icon blocks.
+- [x] **Janome / Elna (`.JEF`):** 116-byte fixed LE header, timestamp string encoding, dynamic hoop selection (50x50, 110x110, 126x110, 140x200, 200x200), center-relative coordinate space, inverted machine Y deltas, and 79-color Janome thread chart matching.
+- [x] **Engine Integration:** Added `engine.exportPes()` and `engine.exportJef()` methods.
+- [x] **Studio Top-Bar UI:** Added one-click `.PES` and `.JEF` export buttons in `public/index.html` with reactive file download triggers in `public/app.js`.
+- [x] **Comprehensive Test Suite:** 120/120 tests passing with round-trip encode/decode verification across DST, EXP, PES, and JEF.
+
+---
+
+## 🚀 Sub-Items for Next Release (v1.5 — Advanced Weave Fills & Extended Exporters)
 
 ### 1. Radial & Spiral Weave Generators
-- **Curved / Radial Satin:** Implement center-out radial stepping for circular crests, badges, and flower petals.
-- **Spiral Fill:** Logarithmic and Archimedean spiral running fills for circular shields and badges.
-- **Meander / Stippling Fill:** Continuous non-crossing Hilbert or Voronoi meander paths for quilt underlay and background fills.
+- **Curved / Radial Satin:** Implement center-out radial stepping for circular crests, badges, and flower petals with angle-adaptive stitch density.
+- **Archimedean & Logarithmic Spiral Fill:** Continuous spiral running fills from center-outward for circular shields, medallions, and badges.
+- **Meander / Stippling Fill:** Continuous non-crossing Hilbert curve or Voronoi meander paths for background textures and quilt underlays without jump cuts.
 
-### 2. Multi-Format Exporter Suite
-Expand beyond Tajima `.DST` and Melco `.EXP` to support the full ecosystem of domestic and commercial machines:
-- **Brother / Baby Lock (`.PES` / `.PEC`):** Native multi-color headers, thread brand palettes, hoop definitions.
-- **Janome / Elna (`.JEF`):** Little-endian coordinate encoding and hoop limit validation.
-- **Husqvarna Viking (`.VP3` / `.VIP`):** Precise coordinate scaling and compression.
-- **Singer (`.XXX`):** Standard consumer format support.
-
-### 3. Web Worker Threading & UI Optimization
-- **Background Ingestion Worker:** Offload K-Means++ clustering and Marching Squares contouring to a dedicated Web Worker to maintain 60fps UI responsiveness during 4K image uploads.
-- **Wasm Acceleration:** Compile Clipper2 and heavy matrix math into WebAssembly for 10x throughput on complex graphics.
+### 2. Extended Exporter Formats
+- **Husqvarna Viking (`.VP3` / `.VIP`):** Multi-hoop definitions, coordinate scaling, and compressed block encoding.
+- **Singer (`.XXX`):** Consumer sewing machine binary protocol with hardware trim sequences.
 
 ---
 
-## 🧠 Phase 4: Local AI Segmentation & Typography Engine (Target: v2.0)
+## 🧠 Sub-Items for Subsequent Releases (v1.6 - v2.0)
 
-### 1. In-Browser On-Device AI Segmentation (MobileSAM / BiRefNet)
-- **Local ONNX Runtime Web:** Run MobileSAM or BiRefNet locally via WebGPU/WASM for instant 1-click foreground extraction without sending images to external cloud APIs.
-- **Interactive Prompting:** User clicks or box-draws on canvas to segment intricate foreground elements (e.g. isolating sports mascot from noisy background).
+### v1.6: In-Canvas Typography & Satin Lettering Engine
+- **Font-to-Satin Converter:** Ingest TrueType (`.ttf`) and OpenType (`.otf`) glyphs, extract bezier contours, dissect glyph centerlines into dual-rail guides, and synthesize clean satin columns.
+- **Mitred & Overlapping Sharp Corners:** Automated corner cuts and under-lap calculation on acute vertices (`M`, `W`, `A`, `Z`) to prevent needle deflection and excessive thread buildup.
+- **Auto-Kerning & Envelope Warping:** Bridge lettering along circular arcs, banners, and perspective envelopes.
 
-### 2. Commercial Typography & Lettering Engine
-- **Font-to-Satin Converter:** Ingest TrueType (`.ttf`) and OpenType (`.otf`) glyphs, dissect glyph contours into dual-rail centerlines, and synthesize clean satin columns.
-- **Automated Under-Lap & Corner Cuts:** Calculate mitred and overlapping corners on sharp vertices (`M`, `W`, `A`) to prevent excessive thread buildup and needle deflection.
-- **Auto-Kerning & Envelope Warping:** Bridge text along circular arches, banners, and perspective envelopes.
+### v1.7: Performance Offloading & 4K Ingestion Pipeline
+- **Web Worker Threading:** Offload K-Means++ clustering and Marching Squares contour extraction to a background Web Worker to preserve 60fps UI responsiveness during 4K artwork uploads.
+- **Wasm Geometry Acceleration:** Compile Clipper2 and heavy matrix math into WebAssembly for 10x throughput on intricate vector files.
 
-### 3. Photo-Stitch & Thread Blending
-- **CMYK / Thread Dithering:** Staggered multi-spool needle penetrations creating photographic skin tones and gradient blends.
-- **Cross-Stitch Mode:** Automated pixel-to-cross conversion with simulated linen fabric backing.
+### v2.0: Local On-Device AI Segmentation (MobileSAM / BiRefNet)
+- **In-Browser ONNX Runtime Web:** Run MobileSAM or BiRefNet locally via WebGPU/WASM for instant 1-click foreground extraction without external server latency or cloud API costs.
+- **Interactive Point & Box Prompts:** Click or drag bounding boxes directly on the canvas to segment intricate foreground artwork.
+- **Photo-Stitch CMYK Thread Dithering:** Staggered multi-spool needle penetrations creating realistic photographic skin tones and gradient blends.
 
 ---
 
-## 🏭 Phase 5: Industrial Automation & Hardware Fleet Integration (Target: v3.0)
+## 🏭 Sub-Items for Long-Term Releases (v3.0)
 
 ### 1. 3D Puffy Foam & Appliqué Automation
 - **Puff Foam Mode:** Automated high-density satin caps with perforation needle cuts at column ends to cleanly slice 3D EVA craft foam.
@@ -63,8 +68,8 @@ Expand beyond Tajima `.DST` and Melco `.EXP` to support the full ecosystem of do
   3. Final satin border cover with generous bite overlap.
 
 ### 2. Web Serial / WebUSB Direct Machine Link
-- **Hardware Controller:** Direct driver via the browser Web Serial API to push DST streams directly into USB/Serial-connected machines (Happy, Tajima, Brother PR series).
-- **Live Needle Telemetry:** Real-time feedback showing active stitch count, current speed (SPM), and thread break detection.
+- **Hardware Controller:** Direct streaming via browser Web Serial API to push DST streams directly into USB/Serial-connected commercial embroidery machines (Happy, Tajima, Brother PR series).
+- **Live Needle Telemetry:** Real-time feedback showing active stitch count, current speed (SPM), and thread break alerts.
 
 ### 3. Realistic 3D Thread Texture & Fabric Draping Shader
 - **Three.js / WebGL 2.0 PBR Shader:** Physically based rendering of twisted polyester threads with specular anisotropic reflections, metallic thread sparkle, and micro-shadowing between adjacent rows.

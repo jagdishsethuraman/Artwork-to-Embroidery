@@ -11,6 +11,8 @@ import { generateTatamiFill } from '../src/stitches/tatami.js';
 import { StitchCommand, StitchPoint, StitchType } from '../src/stitches/types.js';
 import { writeDst, readDst, encodeDstRecord, decodeDstRecord } from '../src/formats/dst.js';
 import { writeExp } from '../src/formats/exp.js';
+import { writePes, readPes, BROTHER_PEC_PALETTE, findNearestBrotherColor } from '../src/formats/pes.js';
+import { writeJef, readJef, JANOME_JEF_PALETTE, findNearestJanomeColor, JANOME_HOOPS } from '../src/formats/jef.js';
 import { DigitizerEngine, quantizeColors, traceMaskToPolygons, ramerDouglasPeucker, isStickerBorder } from '../src/engine.js';
 
 import { parseSvgPath } from '../src/svg/svg-parser.js';
@@ -206,6 +208,84 @@ for (let i = 1; i < decodedLong.length; i++) {
 assert(maxDecodedSew <= 7.0, `DST long sewing stitch subdivided into safe segments (max ${maxDecodedSew.toFixed(2)}mm <= 7.0mm)`);
 assert(decodedLong.length >= 4, '15mm stitch subdivided into 3+ intermediate stitches');
 
+// --- Brother .PES / .PEC Exporter Tests ---
+console.log('\n[3b. Brother .PES / .PEC Multi-Color Exporter]');
+const pesTestStitches = [
+  new StitchPoint(0, 0, StitchCommand.STITCH, 0),
+  new StitchPoint(12.5, 0, StitchCommand.STITCH, 0),
+  new StitchPoint(12.5, 12.5, StitchCommand.STITCH, 0),
+  new StitchPoint(0, 12.5, StitchCommand.STITCH, 0),
+  new StitchPoint(0, 0, StitchCommand.STITCH, 0),
+  new StitchPoint(0, 0, StitchCommand.COLOR_CHANGE, 1),
+  new StitchPoint(6.0, 6.0, StitchCommand.JUMP, 1),
+  new StitchPoint(18.0, 6.0, StitchCommand.STITCH, 1),
+  new StitchPoint(18.0, 18.0, StitchCommand.STITCH, 1)
+];
+
+const pesThreads = ['#2563eb', '#dc2626']; // Royal Blue & Crimson Red
+const pesBytes = writePes(pesTestStitches, { label: 'PATCH1', threads: pesThreads });
+assert(pesBytes instanceof Uint8Array, 'writePes returns Uint8Array');
+assert(pesBytes.length > 536, `writePes output size >= 536 bytes (got ${pesBytes.length})`);
+
+// Verify PES header signature and PEC block offset
+const textDecoder = new TextDecoder('ascii');
+const pesMagic = textDecoder.decode(pesBytes.subarray(0, 8));
+assert(pesMagic === '#PES0001', `PES header starts with #PES0001 (got ${pesMagic})`);
+
+const pesDataView = new DataView(pesBytes.buffer, pesBytes.byteOffset, pesBytes.byteLength);
+const pecOffset = pesDataView.getUint32(8, true);
+assert(pecOffset === 22, `PES header correctly points to PEC block at offset 22 (got ${pecOffset})`);
+
+const pecMagic = textDecoder.decode(pesBytes.subarray(pecOffset, pecOffset + 8));
+assert(pecMagic === '#PEC0001', `Embedded PEC block has valid #PEC0001 signature`);
+
+// Verify readPes round-trip
+const pesDecoded = readPes(pesBytes);
+assert(pesDecoded.label === 'PATCH1', `readPes recovered design label "${pesDecoded.label}"`);
+assert(pesDecoded.colorIndices.length === 2, `readPes recovered 2 thread colors`);
+assert(pesDecoded.colorIndices[0] === 32, `Thread 1 (#2563eb) mapped to Brother Sky Blue (idx 32)`);
+assert(pesDecoded.colorIndices[1] === 5, `Thread 2 (#dc2626) mapped to Brother Red (idx 5)`);
+assert(pesDecoded.stitches.length >= pesTestStitches.length, `readPes recovered stitch sequence (${pesDecoded.stitches.length} stitches)`);
+
+const lastPesOriginal = pesTestStitches[pesTestStitches.length - 1];
+const lastPesDecoded = pesDecoded.stitches[pesDecoded.stitches.length - 1]; // End marker follows
+const lastPesSew = pesDecoded.stitches[pesDecoded.stitches.length - 2];
+assertClose(lastPesSew.x, lastPesOriginal.x, 0.15, `Final X preserved after PES round-trip`);
+assertClose(lastPesSew.y, lastPesOriginal.y, 0.15, `Final Y preserved after PES round-trip`);
+
+// --- Janome .JEF Exporter Tests ---
+console.log('\n[3c. Janome .JEF Multi-Color Exporter]');
+const jefThreads = ['#10b981', '#fbbf24']; // Emerald & Canary
+const jefBytes = writeJef(pesTestStitches, { threads: jefThreads });
+assert(jefBytes instanceof Uint8Array, 'writeJef returns Uint8Array');
+assert(jefBytes.length >= 116 + 16, `writeJef output size >= 116 header + palette (got ${jefBytes.length})`);
+
+const jefView = new DataView(jefBytes.buffer, jefBytes.byteOffset, jefBytes.byteLength);
+const jefStitchOffset = jefView.getUint32(0, true);
+const jefColorCount = jefView.getUint32(24, true);
+const jefPointCount = jefView.getUint32(28, true);
+const jefHoopCode = jefView.getUint32(32, true);
+
+assert(jefStitchOffset === 116 + 16, `JEF stitch offset correct (${jefStitchOffset})`);
+assert(jefColorCount === 2, `JEF color count correct (${jefColorCount})`);
+assert(jefPointCount > 0, `JEF point count computed (${jefPointCount})`);
+assert(jefHoopCode === JANOME_HOOPS.HOOP_50X50, `Small 18mm design assigned to 50x50 hoop (code ${jefHoopCode})`);
+
+// Test larger design hoop auto-selection
+const largeStitches = [
+  new StitchPoint(0, 0, StitchCommand.STITCH, 0),
+  new StitchPoint(100, 90, StitchCommand.STITCH, 0)
+];
+const largeJef = writeJef(largeStitches);
+const largeJefView = new DataView(largeJef.buffer, largeJef.byteOffset, largeJef.byteLength);
+const largeHoopCode = largeJefView.getUint32(32, true);
+assert(largeHoopCode === JANOME_HOOPS.HOOP_126X110, `100x90mm design assigned to 126x110 hoop (code ${largeHoopCode})`);
+
+// Verify readJef round-trip
+const jefDecoded = readJef(jefBytes);
+assert(jefDecoded.colorIndices.length === 2, `readJef recovered 2 thread colors`);
+assert(jefDecoded.stitches.length >= pesTestStitches.length, `readJef recovered stitch sequence (${jefDecoded.stitches.length} stitches)`);
+
 // -------------------------------------------------------------
 // 4. UNIFIED ENGINE & SVG INTEGRATION
 // -------------------------------------------------------------
@@ -250,6 +330,16 @@ assert(finalDst instanceof Uint8Array && finalDst.length > 512, 'Engine exported
 
 const finalExp = engine.exportExp();
 assert(finalExp instanceof Uint8Array && finalExp.length > 0, 'Engine exported valid .EXP binary');
+
+const finalPes = engine.exportPes('TEST_PATCH');
+assert(finalPes instanceof Uint8Array && finalPes.length > 536, 'Engine exported valid .PES binary');
+const decodedFinalPes = readPes(finalPes);
+assert(decodedFinalPes.colorIndices.length === 2, 'Engine PES export preserved 2 layer colors in Brother palette');
+
+const finalJef = engine.exportJef('TEST_PATCH');
+assert(finalJef instanceof Uint8Array && finalJef.length > 132, 'Engine exported valid .JEF binary');
+const decodedFinalJef = readJef(finalJef);
+assert(decodedFinalJef.colorIndices.length === 2, 'Engine JEF export preserved 2 layer colors in Janome palette');
 
 // SVG Path parsing
 const svgPath = 'M 0 0 L 25 0 L 25 25 L 0 25 Z';
