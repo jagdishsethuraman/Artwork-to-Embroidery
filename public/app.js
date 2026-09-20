@@ -429,30 +429,33 @@ function updateLayersUI() {
       ? `<span class="badge" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;margin-right:4px;font-size:9.5px;">${islandCount} isl</span>`
       : '';
 
-    const colorDot = `<span class="color-badge" style="background:${layer.hex};"></span>`;
+    const colorDot = `<span class="color-badge" style="background:${layer.hex};flex-shrink:0;"></span>`;
     card.style.opacity = layer.hidden ? '0.45' : '1';
     card.innerHTML = `
-      <div style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span class="drag-handle" title="Drag to reorder stitch sequence" style="cursor:grab;color:var(--text-muted);display:inline-flex;align-items:center;padding:2px;user-select:none;">
+      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;width:100%;">
+        <div style="display:flex;align-items:center;gap:5px;min-width:0;flex:1;">
+          <span class="drag-handle" title="Drag to reorder stitch sequence" style="cursor:grab;color:var(--text-muted);display:inline-flex;align-items:center;padding:2px 0;user-select:none;flex-shrink:0;">
             <svg class="svg-icon" viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor;stroke:none;"><circle cx="8" cy="5" r="1.5"/><circle cx="16" cy="5" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg>
           </span>
-          <span style="font-size:10px;font-weight:800;color:var(--text-muted);min-width:18px;">#${idx + 1}</span>
-          ${colorDot}
-          <div>
-            <div style="font-weight:700;font-size:12.5px;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:115px;">${layer.name}</div>
-            <div style="font-size:10px;color:var(--text-muted);">${layer.threadCode}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:3px;">
-          ${islandBadge}
-          <span class="badge" style="font-size:9.5px;">${layer.stitchType.toUpperCase()}</span>
-          <button class="layer-visibility-btn" data-idx="${idx}" title="${layer.hidden ? 'Show layer' : 'Hide layer'}" style="background:transparent;border:none;color:${layer.hidden ? '#64748b' : 'var(--text-secondary)'};cursor:pointer;padding:2px 3px;display:inline-flex;align-items:center;justify-content:center;">
+
+          <button class="layer-visibility-btn" data-idx="${idx}" title="${layer.hidden ? 'Show layer on canvas' : 'Hide layer from canvas'}" style="background:${layer.hidden ? 'rgba(239,68,68,0.12)' : 'transparent'};border:1px solid ${layer.hidden ? 'rgba(239,68,68,0.3)' : 'transparent'};border-radius:4px;color:${layer.hidden ? '#ef4444' : 'var(--text-muted)'};cursor:pointer;padding:2px 3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease;">
             ${layer.hidden
               ? `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
-              : `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+              : `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`
             }
           </button>
+
+          <span style="font-size:10px;font-weight:800;color:var(--text-muted);min-width:16px;flex-shrink:0;">#${idx + 1}</span>
+          ${colorDot}
+          <div style="min-width:0;flex:1;overflow:hidden;">
+            <div style="font-weight:700;font-size:12px;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${layer.name}</div>
+            <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${layer.threadCode}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+          ${islandBadge}
+          <span class="badge" style="font-size:9.5px;">${layer.stitchType.toUpperCase()}</span>
           <div class="layer-order-btns" style="display:flex;flex-direction:column;gap:1px;margin-left:2px;">
             <button class="order-btn btn-up" data-idx="${idx}" title="Move earlier in embroidery sequence" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === 0 ? 'opacity:0.2;cursor:default;' : ''}">
               <svg class="svg-icon" viewBox="0 0 24 24" style="width:9px;height:9px;"><polyline points="18 15 12 9 6 15"/></svg>
@@ -647,13 +650,16 @@ function render() {
     // Active Needle Indicator during playback
     if (maxIdx > 0 && maxIdx < stitches.length) {
       const head = stitches[maxIdx - 1];
-      ctx.fillStyle = '#f43f5e';
-      ctx.beginPath();
-      ctx.arc(head.x, head.y, 0.6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 0.2;
-      ctx.stroke();
+      const headLayer = engine.layers[head.colorIndex] || engine.layers[0];
+      if (!headLayer || !headLayer.hidden) {
+        ctx.fillStyle = '#f43f5e';
+        ctx.beginPath();
+        ctx.arc(head.x, head.y, 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 0.2;
+        ctx.stroke();
+      }
     }
   }
 
@@ -1772,25 +1778,56 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+// Export Dropdown Controls
+const btnExportDropdownToggle = document.getElementById('btnExportDropdownToggle');
+const exportDropdownMenu = document.getElementById('exportDropdownMenu');
+const exportChevron = document.getElementById('exportChevron');
+
+function closeExportDropdown() {
+  if (exportDropdownMenu) exportDropdownMenu.style.display = 'none';
+  if (exportChevron) exportChevron.style.transform = 'rotate(0deg)';
+}
+
+if (btnExportDropdownToggle && exportDropdownMenu) {
+  btnExportDropdownToggle.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = exportDropdownMenu.style.display === 'block';
+    exportDropdownMenu.style.display = isOpen ? 'none' : 'block';
+    if (exportChevron) {
+      exportChevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!exportDropdownMenu.contains(e.target) && e.target !== btnExportDropdownToggle) {
+      closeExportDropdown();
+    }
+  });
+}
+
 document.getElementById('exportDstBtn').onclick = () => {
+  closeExportDropdown();
   const dstBytes = engine.exportDst('TRACE_DST');
   const blob = new Blob([dstBytes], { type: 'application/octet-stream' });
   downloadBlob(blob, `${activePreset}_output.dst`);
 };
 
 document.getElementById('exportExpBtn').onclick = () => {
+  closeExportDropdown();
   const expBytes = engine.exportExp();
   const blob = new Blob([expBytes], { type: 'application/octet-stream' });
   downloadBlob(blob, `${activePreset}_output.exp`);
 };
 
 document.getElementById('exportPesBtn').onclick = () => {
+  closeExportDropdown();
   const pesBytes = engine.exportPes('TRACE_PES');
   const blob = new Blob([pesBytes], { type: 'application/octet-stream' });
   downloadBlob(blob, `${activePreset}_output.pes`);
 };
 
 document.getElementById('exportJefBtn').onclick = () => {
+  closeExportDropdown();
   const jefBytes = engine.exportJef('TRACE_JEF');
   const blob = new Blob([jefBytes], { type: 'application/octet-stream' });
   downloadBlob(blob, `${activePreset}_output.jef`);
