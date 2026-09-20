@@ -285,6 +285,63 @@ function loadPreset(name) {
       params: { density: 0.4, stitchLength: 3.5, angle: 45, stagger: 0.25, underlay: true }
     });
     botLayer.geometry = botBar;
+  } else if (name === 'crest') {
+    // 1. Outer Laurel Rim: Annulus ring (R_out = 32mm, R_in = 22mm) with Radial Satin
+    const outerRimPts = [];
+    const innerRimHole = [];
+    const numPts = 48;
+    for (let i = 0; i < numPts; i++) {
+      const theta = (i / numPts) * Math.PI * 2;
+      outerRimPts.push(new Point2D(32 * Math.cos(theta), 32 * Math.sin(theta)));
+      innerRimHole.push(new Point2D(22 * Math.cos(theta), 22 * Math.sin(theta)));
+    }
+    const rimPoly = new Polygon(outerRimPts, [innerRimHole]);
+    const rimLayer = engine.addLayer({
+      id: 'crest-rim',
+      name: 'Laurel Rim (Radial Satin)',
+      hex: '#f59e0b',
+      threadCode: 'Madeira 1064 (Gold)',
+      stitchType: StitchType.RADIAL_SATIN,
+      params: { density: 0.45, pullComp: 0.35, underlay: true }
+    });
+    rimLayer.geometry = rimPoly;
+
+    // 2. Shield Field: Disc (R = 21.5mm) with Archimedean Spiral
+    const shieldPts = [];
+    for (let i = 0; i < numPts; i++) {
+      const theta = (i / numPts) * Math.PI * 2;
+      shieldPts.push(new Point2D(21.5 * Math.cos(theta), 21.5 * Math.sin(theta)));
+    }
+    const shieldPoly = new Polygon(shieldPts);
+    const shieldLayer = engine.addLayer({
+      id: 'crest-shield',
+      name: 'Shield Field (Spiral Fill)',
+      hex: '#1d4ed8',
+      threadCode: 'Madeira 1143 (Royal Navy)',
+      stitchType: StitchType.SPIRAL,
+      params: { density: 0.8, stitchLength: 2.8 }
+    });
+    shieldLayer.geometry = shieldPoly;
+
+    // 3. Center Emblem: 8-pointed star with Meander Fill
+    const starPts = [];
+    const starR_outer = 11;
+    const starR_inner = 5.5;
+    for (let i = 0; i < 16; i++) {
+      const theta = (i / 16) * Math.PI * 2 - Math.PI / 2;
+      const r = (i % 2 === 0) ? starR_outer : starR_inner;
+      starPts.push(new Point2D(r * Math.cos(theta), r * Math.sin(theta)));
+    }
+    const starPoly = new Polygon(starPts);
+    const emblemLayer = engine.addLayer({
+      id: 'crest-emblem',
+      name: 'Center Star (Meander Fill)',
+      hex: '#ef4444',
+      threadCode: 'Madeira 1184 (Crimson Red)',
+      stitchType: StitchType.MEANDER,
+      params: { density: 0.7, stitchLength: 2.5 }
+    });
+    emblemLayer.geometry = starPoly;
   }
 
   engine.activeLayerId = engine.layers[0].id;
@@ -1454,6 +1511,9 @@ window.addEventListener('keydown', (e) => {
 // UI Event Handlers
 document.getElementById('presetDaisy').onclick = () => { pushState(); loadPreset('daisy'); fitToScreen(); };
 document.getElementById('presetMono').onclick = () => { pushState(); loadPreset('monogram'); fitToScreen(); };
+if (document.getElementById('presetCrest')) {
+  document.getElementById('presetCrest').onclick = () => { pushState(); loadPreset('crest'); fitToScreen(); };
+}
 document.getElementById('btnFitScreen').onclick = fitToScreen;
 document.getElementById('btnResetPreset').onclick = () => { pushState(); loadPreset(activePreset); fitToScreen(); };
 

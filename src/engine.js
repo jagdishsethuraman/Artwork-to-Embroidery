@@ -4,6 +4,8 @@ import { splitPolygonByLine, splitSatinByLine, splitPolylineByLine } from './geo
 import { generateRunningStitch } from './stitches/running.js';
 import { generateSatinColumn } from './stitches/satin.js';
 import { generateTatamiFill } from './stitches/tatami.js';
+import { generateRadialSatin, generateSpiralFill } from './stitches/radial.js';
+import { generateMeanderFill } from './stitches/meander.js';
 import { ColorLayer, StitchCommand, StitchPoint, StitchType, createTieIn, createTieOff } from './stitches/types.js';
 import { writeDst, readDst } from './formats/dst.js';
 import { writeExp } from './formats/exp.js';
@@ -22,6 +24,9 @@ export {
   generateRunningStitch,
   generateSatinColumn,
   generateTatamiFill,
+  generateRadialSatin,
+  generateSpiralFill,
+  generateMeanderFill,
   ColorLayer,
   StitchCommand,
   StitchPoint,
@@ -60,8 +65,14 @@ export function convertGeometry(geom, targetType) {
   if (!geom) return null;
 
   // Multi-polygon support (Polygon[])
+  const isPolygonAreaType = targetType === StitchType.TATAMI ||
+    targetType === StitchType.TWILL ||
+    targetType === StitchType.RADIAL_SATIN ||
+    targetType === StitchType.SPIRAL ||
+    targetType === StitchType.MEANDER;
+
   if (Array.isArray(geom) && geom.length > 0 && (geom[0] instanceof Polygon || geom[0].vertices)) {
-    if (targetType === StitchType.TATAMI || targetType === StitchType.TWILL) {
+    if (isPolygonAreaType) {
       return geom;
     }
     return geom.map(p => convertGeometry(p, targetType));
@@ -101,8 +112,8 @@ export function convertGeometry(geom, targetType) {
     }
   }
 
-  // 2. Target is TATAMI or TWILL (requires Polygon)
-  if (targetType === StitchType.TATAMI || targetType === StitchType.TWILL) {
+  // 2. Target is Polygon-based fill (TATAMI, TWILL, RADIAL_SATIN, SPIRAL, MEANDER)
+  if (isPolygonAreaType) {
     if (geom instanceof Polygon) return geom;
 
     // Convert from Rails { rail1, rail2 } to closed Polygon
@@ -271,17 +282,39 @@ export class DigitizerEngine {
 
       const polys = layer.getPolygons();
 
-      if (polys.length > 0 && (layer.stitchType === StitchType.TATAMI || layer.stitchType === StitchType.TWILL)) {
+      const isAreaFill = layer.stitchType === StitchType.TATAMI ||
+        layer.stitchType === StitchType.TWILL ||
+        layer.stitchType === StitchType.RADIAL_SATIN ||
+        layer.stitchType === StitchType.SPIRAL ||
+        layer.stitchType === StitchType.MEANDER;
+
+      if (polys.length > 0 && isAreaFill) {
         // Multi-island fill: sequence polygons with nearest-neighbor
         const orderedPolys = sequencePolygons(polys, lastNeedlePos);
 
         for (let pIdx = 0; pIdx < orderedPolys.length; pIdx++) {
           const poly = orderedPolys[pIdx];
-          const polyStitches = generateTatamiFill(poly, {
-            ...layer.params,
-            stagger: layer.stitchType === StitchType.TWILL ? 0.25 : (layer.params.stagger || 0.33),
-            colorIndex: lIdx
-          });
+          let polyStitches = [];
+          switch (layer.stitchType) {
+            case StitchType.RADIAL_SATIN:
+              polyStitches = generateRadialSatin(poly, { ...layer.params, colorIndex: lIdx });
+              break;
+            case StitchType.SPIRAL:
+              polyStitches = generateSpiralFill(poly, { ...layer.params, colorIndex: lIdx });
+              break;
+            case StitchType.MEANDER:
+              polyStitches = generateMeanderFill(poly, { ...layer.params, colorIndex: lIdx });
+              break;
+            case StitchType.TWILL:
+            case StitchType.TATAMI:
+            default:
+              polyStitches = generateTatamiFill(poly, {
+                ...layer.params,
+                stagger: layer.stitchType === StitchType.TWILL ? 0.25 : (layer.params.stagger || 0.33),
+                colorIndex: lIdx
+              });
+              break;
+          }
           if (polyStitches.length < 2) continue;
 
           const firstPt = polyStitches[0];
@@ -344,6 +377,33 @@ export class DigitizerEngine {
           case StitchType.SATIN:
             if (geom && geom.rail1 && geom.rail2) {
               layerStitches = generateSatinColumn(geom.rail1, geom.rail2, {
+                ...layer.params,
+                colorIndex: lIdx
+              });
+            }
+            break;
+
+          case StitchType.RADIAL_SATIN:
+            if (geom instanceof Polygon) {
+              layerStitches = generateRadialSatin(geom, {
+                ...layer.params,
+                colorIndex: lIdx
+              });
+            }
+            break;
+
+          case StitchType.SPIRAL:
+            if (geom instanceof Polygon) {
+              layerStitches = generateSpiralFill(geom, {
+                ...layer.params,
+                colorIndex: lIdx
+              });
+            }
+            break;
+
+          case StitchType.MEANDER:
+            if (geom instanceof Polygon) {
+              layerStitches = generateMeanderFill(geom, {
                 ...layer.params,
                 colorIndex: lIdx
               });

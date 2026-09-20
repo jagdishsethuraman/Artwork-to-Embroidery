@@ -49,6 +49,9 @@ The Artwork-to-Embroidery Engine is a browser-native, zero-cloud-dependency embr
   - **Satin Columns:** Dual-rail transverse stepping with adaptive density based on column curvature.
   - **Tatami Fill:** Parallel scanline fill with 3-row brick pattern (`stagger = 0.33`).
   - **Twill Weave:** 4-row diagonal twill weave (`stagger = 0.25`) for uniform sheen and structural integrity.
+  - **Radial Satin:** $360^\circ$ angular ray-cast satin stepping with angle-adaptive density ($\Delta\theta$), concentric underlays, outward pull compensation, and feathered inner hub anti-perforation.
+  - **Archimedean Spiral:** Pure single-line continuous spiral running fill ($r(\theta) = r_0 + \frac{d}{2\pi}\theta$) with strictly 0 internal jump stitches and $\le 3.5\text{mm}$ needle intervals.
+  - **Curvilinear Meander / Stippling:** Continuous dual-harmonic sine undulation with strict polygon boundary clamping and smooth perimeter connector steps.
 
 ### Stage 4: Canonical Branch Partitioning & Spatial Routing
 - **Canonical Branching:** Decomposes scanlines across bifurcated shapes (letters `U`, `M`, archways, multi-pointed stars) at true fork (1 segment $\to 2$) and merge (2 segments $\to 1$) points.
@@ -70,6 +73,8 @@ The Artwork-to-Embroidery Engine is a browser-native, zero-cloud-dependency embr
   $$b_1, b_2, b_3 \in \{+1, -1, +3, -3, +9, -9, +27, -27, +81, -81\}$$
   supporting `STITCH`, `JUMP`, `COLOR_CHANGE`, and `END`.
 - **Melco EXP:** 2-byte signed binary delta format with dedicated hardware escape flags.
+- **Brother PES / PEC (`#PES0001` / `#PEC0001`):** 22-byte container header, embedded `#PEC0001` block, 64-color Brother palette mapping, 7-bit/12-bit signed displacements, and thumbnail graphics.
+- **Janome JEF:** 116-byte fixed LE header with timestamp string, dynamic machine hoop fitting (`50x50` to `200x200`), inverted machine Y deltas, and 79-color thread chart.
 
 ---
 

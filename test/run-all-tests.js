@@ -8,6 +8,8 @@ import { splitPolygonByLine, splitSatinByLine, splitPolylineByLine } from '../sr
 import { generateRunningStitch } from '../src/stitches/running.js';
 import { generateSatinColumn } from '../src/stitches/satin.js';
 import { generateTatamiFill } from '../src/stitches/tatami.js';
+import { generateRadialSatin, generateSpiralFill } from '../src/stitches/radial.js';
+import { generateMeanderFill } from '../src/stitches/meander.js';
 import { StitchCommand, StitchPoint, StitchType } from '../src/stitches/types.js';
 import { writeDst, readDst, encodeDstRecord, decodeDstRecord } from '../src/formats/dst.js';
 import { writeExp } from '../src/formats/exp.js';
@@ -138,6 +140,99 @@ const tatamiStitches = generateTatamiFill(poly, {
   underlay: true
 });
 assert(tatamiStitches.length > 50, 'Tatami fill generated scanline pattern with underlay');
+
+// D. Radial Satin Weave
+const annulusOuter = [];
+const annulusInner = [];
+const numAnnulusPts = 36;
+for (let i = 0; i < numAnnulusPts; i++) {
+  const theta = (i / numAnnulusPts) * Math.PI * 2;
+  annulusOuter.push(new Point2D(25 * Math.cos(theta), 25 * Math.sin(theta)));
+  annulusInner.push(new Point2D(15 * Math.cos(theta), 15 * Math.sin(theta)));
+}
+const annulusPoly = new Polygon(annulusOuter, [annulusInner]);
+const radialStitches = generateRadialSatin(annulusPoly, {
+  density: 0.45,
+  pullComp: 0.35,
+  underlay: true
+});
+assert(radialStitches.length >= 300, `Radial satin generated comprehensive stitch stream (${radialStitches.length} stitches >= 300)`);
+let maxRadialDist = 0;
+let hasConcentricUnderlay = false;
+for (let i = 0; i < radialStitches.length; i++) {
+  const s = radialStitches[i];
+  const r = Math.hypot(s.x, s.y);
+  if (r > maxRadialDist) maxRadialDist = r;
+}
+assert(maxRadialDist > 25.0, `Radial pull compensation expanded outer radius (max ${maxRadialDist.toFixed(2)}mm > 25.0mm)`);
+
+// Solid disc radial satin - verify hub anti-perforation feathering
+const discPts = [];
+for (let i = 0; i < numAnnulusPts; i++) {
+  const theta = (i / numAnnulusPts) * Math.PI * 2;
+  discPts.push(new Point2D(20 * Math.cos(theta), 20 * Math.sin(theta)));
+}
+const solidDiscPoly = new Polygon(discPts);
+const solidRadialStitches = generateRadialSatin(solidDiscPoly, { density: 0.5 });
+assert(solidRadialStitches.length >= 200, `Solid radial satin generated (${solidRadialStitches.length} stitches)`);
+let featheredHubDrops = 0;
+for (const s of solidRadialStitches) {
+  const r = Math.hypot(s.x, s.y);
+  if (r > 0.5 && r < 4.0) featheredHubDrops++;
+}
+assert(featheredHubDrops > 0, `Inner hub anti-perforation staggered needle penetrations away from singularity`);
+
+// E. Archimedean Spiral Fill
+const spiralDiscPoly = new Polygon(discPts);
+const spiralStitches = generateSpiralFill(spiralDiscPoly, {
+  density: 0.8,
+  stitchLength: 3.0
+});
+assert(spiralStitches.length >= 300, `Archimedean spiral generated comprehensive continuous fill (${spiralStitches.length} stitches)`);
+
+let internalSpiralJumps = 0;
+let maxSpiralStep = 0;
+for (let i = 1; i < spiralStitches.length; i++) {
+  const prev = spiralStitches[i - 1];
+  const curr = spiralStitches[i];
+  if (curr.command === StitchCommand.JUMP) {
+    internalSpiralJumps++;
+  } else if (curr.command === StitchCommand.STITCH) {
+    const dist = curr.distance(prev);
+    if (dist > maxSpiralStep) maxSpiralStep = dist;
+  }
+}
+assert(internalSpiralJumps === 0, `Archimedean spiral achieved strictly 0 internal jump stitches (pure single-line thread continuity)`);
+assert(maxSpiralStep <= 3.5, `Archimedean spiral step length strictly bounded (max ${maxSpiralStep.toFixed(2)}mm <= 3.5mm)`);
+
+// F. Continuous Curvilinear Meander / Stippling Fill
+const meanderBox = new Polygon([
+  new Point2D(-15, -15),
+  new Point2D(15, -15),
+  new Point2D(15, 15),
+  new Point2D(-15, 15)
+]);
+const meanderStitches = generateMeanderFill(meanderBox, {
+  density: 0.8,
+  stitchLength: 2.5
+});
+assert(meanderStitches.length >= 80, `Curvilinear meander fill generated stitches (${meanderStitches.length} stitches >= 80)`);
+
+let outsideMeanderCount = 0;
+let maxMeanderStep = 0;
+for (let i = 1; i < meanderStitches.length; i++) {
+  const prev = meanderStitches[i - 1];
+  const curr = meanderStitches[i];
+  if (curr.command === StitchCommand.STITCH) {
+    const step = curr.distance(prev);
+    if (step > maxMeanderStep) maxMeanderStep = step;
+    if (Math.abs(curr.x) > 15.1 || Math.abs(curr.y) > 15.1) {
+      outsideMeanderCount++;
+    }
+  }
+}
+assert(outsideMeanderCount === 0, `Meander stitches strictly clamped within polygon boundary`);
+assert(maxMeanderStep <= 3.6, `Meander step and boundary connectors strictly bounded (max ${maxMeanderStep.toFixed(2)}mm <= 3.6mm)`);
 
 // -------------------------------------------------------------
 // 3. TAJIMA DST BINARY ENCODING & DECODING
@@ -747,6 +842,68 @@ for (let i = 1; i < decConnector.length; i++) {
 }
 assert(firstStitchAfterJumpDistance !== null && firstStitchAfterJumpDistance < 0.1, `Landing needle penetration recorded at exact landing jump coordinates`);
 
+// H. Multi-Weave Crest Badge Engine Compilation & All-Format Export (DST, EXP, PES, JEF)
+const crestEngine = new DigitizerEngine();
+
+// Layer 1: Laurel Rim (Radial Satin)
+const crestOuter = [];
+const crestInner = [];
+for (let i = 0; i < 36; i++) {
+  const theta = (i / 36) * Math.PI * 2;
+  crestOuter.push(new Point2D(30 * Math.cos(theta), 30 * Math.sin(theta)));
+  crestInner.push(new Point2D(20 * Math.cos(theta), 20 * Math.sin(theta)));
+}
+const rimL = crestEngine.addLayer({
+  id: 'crest-rim',
+  hex: '#f59e0b',
+  stitchType: StitchType.RADIAL_SATIN,
+  params: { density: 0.45, pullComp: 0.35, underlay: true }
+});
+rimL.geometry = new Polygon(crestOuter, [crestInner]);
+
+// Layer 2: Shield Field (Archimedean Spiral)
+const shieldPts2 = [];
+for (let i = 0; i < 36; i++) {
+  const theta = (i / 36) * Math.PI * 2;
+  shieldPts2.push(new Point2D(19.5 * Math.cos(theta), 19.5 * Math.sin(theta)));
+}
+const shieldL = crestEngine.addLayer({
+  id: 'crest-shield',
+  hex: '#1d4ed8',
+  stitchType: StitchType.SPIRAL,
+  params: { density: 0.8, stitchLength: 2.8 }
+});
+shieldL.geometry = new Polygon(shieldPts2);
+
+// Layer 3: Center Star (Meander Fill)
+const starPts2 = [];
+for (let i = 0; i < 16; i++) {
+  const theta = (i / 16) * Math.PI * 2 - Math.PI / 2;
+  const r = (i % 2 === 0) ? 10 : 5;
+  starPts2.push(new Point2D(r * Math.cos(theta), r * Math.sin(theta)));
+}
+const emblemL = crestEngine.addLayer({
+  id: 'crest-emblem',
+  hex: '#ef4444',
+  stitchType: StitchType.MEANDER,
+  params: { density: 0.7, stitchLength: 2.5 }
+});
+emblemL.geometry = new Polygon(starPts2);
+
+const crestStitches = crestEngine.compileStitches();
+assert(crestStitches.length > 500, `Multi-weave crest compiled successfully with all 3 new weave types (${crestStitches.length} stitches > 500)`);
+
+const crestDst = crestEngine.exportDst('CREST');
+assert(crestDst instanceof Uint8Array && crestDst.length > 512, `Crest exported to Tajima DST (${crestDst.length} bytes)`);
+
+const crestExp = crestEngine.exportExp();
+assert(crestExp instanceof Uint8Array && crestExp.length > 0, `Crest exported to Melco EXP (${crestExp.length} bytes)`);
+
+const crestPes = crestEngine.exportPes('CREST');
+assert(crestPes instanceof Uint8Array && crestPes.length > 500, `Crest exported to Brother PES (${crestPes.length} bytes)`);
+
+const crestJef = crestEngine.exportJef('CREST');
+assert(crestJef instanceof Uint8Array && crestJef.length > 100, `Crest exported to Janome JEF (${crestJef.length} bytes)`);
 
 console.log('\n=============================================');
 console.log(` RESULTS: ${passedTests} passed, ${failedTests} failed, ${totalTests} total.`);

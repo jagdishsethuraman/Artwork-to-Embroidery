@@ -4,6 +4,17 @@ All notable changes to the Artwork-to-Embroidery Engine are documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-09-20
+
+### Added
+- **Radial Satin Weave Generator (`src/stitches/radial.js`):** Full $360^\circ$ radial satin stepping with angle-adaptive density calibration ($\Delta\theta$), outward pull compensation dilation, concentric running underlay loops, and feathered inner hub anti-perforation ($40\text{–}45\%$ radial depth staggering when $\Delta\theta \cdot r_{inner} < 0.35\text{mm}$).
+- **Archimedean Spiral Fill Generator (`src/stitches/radial.js`):** Pure continuous single-line spiral running weave ($r(\theta) = r_0 + \frac{d}{2\pi}\theta$) with uniform needle penetration intervals ($\le 3.5\text{mm}$), boundary polygon clipping, and strictly **0 internal jump stitches**.
+- **Curvilinear Meander / Stippling Fill (`src/stitches/meander.js`):** Continuous harmonic sine stippling weave ($y(x) = y_{\text{base}} + A \sin(\omega_1 x) + \frac{A}{3} \sin(\omega_2 x)$) with strict polygon boundary clamping and smooth perimeter connector steps ($\le 3.5\text{mm}$).
+- **StitchType Enum Additions (`src/stitches/types.js`):** Added `RADIAL_SATIN: 'radial_satin'`, `SPIRAL: 'spiral'`, and `MEANDER: 'meander'`.
+- **DigitizerEngine Area Weave Support (`src/engine.js`):** Enabled `convertGeometry` polygon routing and `compileStitches()` support for single-geometry and multi-polygon island layers with auto-trim bracket sequences.
+- **Studio UI Controls & Demo Preset (`public/index.html` & `public/app.js`):** Added new stitch types to Inspector `#stitchTypeSelect` and Image Import `#importStitchType`. Added 3-layer `🏅 Crest Badge` demo preset demonstrating Radial Satin laurel rim, Archimedean Spiral field, and Meander Fill star emblem.
+- **Comprehensive Unit Tests (`test/run-all-tests.js`):** Added 15 new automated assertions testing radial satin underlays and hub feathering, 0-jump spiral thread continuity, meander polygon containment clamping, and multi-weave crest exports across Tajima DST, Melco EXP, Brother PES, and Janome JEF (total 135/135 tests passing).
+
 ---
 
 ## [1.4.1] - 2026-09-20

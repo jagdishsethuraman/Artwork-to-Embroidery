@@ -673,9 +673,10 @@
     <!-- Left Column: Layers & Designs -->
     <aside class="sidebar-left">
       <div class="section-title">Design Presets</div>
-      <div class="preset-selector">
-        <button class="btn" id="presetDaisy" style="flex:1;">🌼 Daisy Patch</button>
-        <button class="btn" id="presetMono" style="flex:1;">🔤 Monogram 'E'</button>
+      <div class="preset-selector" style="display:flex;gap:6px;padding:0 16px 12px;flex-wrap:wrap;">
+        <button class="btn" id="presetDaisy" style="flex:1;">🌼 Daisy</button>
+        <button class="btn" id="presetMono" style="flex:1;">🔤 Monogram</button>
+        <button class="btn" id="presetCrest" style="flex:1;">🏅 Crest Badge</button>
       </div>
       <div style="padding:0 16px 12px;">
         <button class="btn btn-pink" id="btnSidebarImport" style="width:100%;justify-content:center;gap:8px;font-size:12px;padding:8px 10px;">
@@ -761,9 +762,12 @@
       <div class="form-group">
         <label class="form-label">Stitch Weave Type</label>
         <select id="stitchTypeSelect">
-          <option value="satin">Satin (Dual Rails zigzag, <6mm)</option>
-          <option value="tatami">Tatami Fill (Standard scanline)</option>
           <option value="twill">Twill Weave (4-step staggered)</option>
+          <option value="tatami">Tatami Fill (Standard scanline)</option>
+          <option value="satin">Satin (Dual Rails zigzag, <6mm)</option>
+          <option value="radial_satin">Radial Satin (Center-out sunburst)</option>
+          <option value="spiral">Spiral Fill (Archimedean 0-jump)</option>
+          <option value="meander">Meander / Stipple (Curvilinear quilt)</option>
           <option value="running">Running Stitch (Single line)</option>
           <option value="bean">Bean Stitch (Heavy triple run)</option>
         </select>
@@ -937,6 +941,9 @@
               <option value="twill" selected>Twill Weave (Diagonal 0.25)</option>
               <option value="tatami">Tatami Fill (Scanline)</option>
               <option value="satin">Satin (Column zigzag)</option>
+              <option value="radial_satin">Radial Satin (Center-out)</option>
+              <option value="spiral">Spiral Fill (Archimedean)</option>
+              <option value="meander">Meander / Stipple</option>
             </select>
           </div>
 

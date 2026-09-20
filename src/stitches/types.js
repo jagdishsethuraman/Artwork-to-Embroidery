@@ -12,10 +12,13 @@ export const StitchCommand = {
 
 export const StitchType = {
   RUNNING: 'running',
-  BEAN: 'bean',       // Triple-stitch running
-  SATIN: 'satin',     // Dual-rail zigzag column
-  TATAMI: 'tatami',   // Standard scanline weave
-  TWILL: 'twill'      // 4-step or 3-step staggered twill weave
+  BEAN: 'bean',             // Triple-stitch running
+  SATIN: 'satin',           // Dual-rail zigzag column
+  TATAMI: 'tatami',         // Standard scanline weave
+  TWILL: 'twill',           // 4-step or 3-step staggered twill weave
+  RADIAL_SATIN: 'radial_satin', // Center-out angular satin stepping
+  SPIRAL: 'spiral',         // Archimedean spiral running fill
+  MEANDER: 'meander'        // Continuous non-crossing stippling weave
 };
 
 export class StitchPoint {

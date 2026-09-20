@@ -7,32 +7,39 @@ This document outlines the strategic roadmap and release milestones for the Artw
 ## 🗺️ Milestone Summary
 
 ```
- Phase 1 & 2 (Complete) ──► Phase 3 (v1.4.1 Complete ──► v1.5 Next) ──► Phase 4 (v1.6 - v2.0) ──► Phase 5 (v3.0)
+ Phase 1 & 2 (Complete) ──► Phase 3 (v1.5 Complete ──► v1.6 Next) ──► Phase 4 (v1.7 - v2.0) ──► Phase 5 (v3.0)
  • Core Geometry & Weave   • Multi-Format Exporters   • Radial & Spiral Weaves  • Typography Engine    • 3D Puff / Appliqué
- • CIELAB Quantization     • Brother .PES (PEC0001)   • Meander/Stippling Fill  • Web Worker 4K        • Machine Fleet Sync
- • Auto-Trims & Anchors    • Janome .JEF (116B LE)    • Husqvarna .VP3          • Local ONNX AI SAM    • Web Serial Direct
- • Canonical Branching     • 120/120 Unit Tests       • Singer .XXX             • Thread Blending      • Live Telemetry
+ • CIELAB Quantization     • Brother .PES & Janome .JEF • Meander/Stippling Fill • Web Worker 4K        • Machine Fleet Sync
+ • Auto-Trims & Anchors    • 135/135 Unit Tests       • Husqvarna .VP3 & Singer • Local ONNX AI SAM    • Web Serial Direct
+ • Canonical Branching     • Crest Badge Demo Preset  • TrueType to Satin       • Thread Blending      • Live Telemetry
 ```
 
 ---
 
 ## ✅ Completed Milestones
 
-### v1.4.1 (Current Release) — Multi-Format Commercial Exporters
+### v1.5.0 (Current Release) — Radial, Spiral & Meander Weave Generators
+- [x] **Radial Satin Weave (`src/stitches/radial.js`):** Center-out $360^\circ$ angular ray-casting for circular crests, badges, and flower petals. Features angle-adaptive density stepping ($\Delta\theta$), outward pull compensation, concentric running underlay, and feathered inner hub anti-perforation ($40\text{–}45\%$ radial depth staggering).
+- [x] **Archimedean Spiral Fill (`src/stitches/radial.js`):** Continuous center-out single-line spiral running weave ($r(\theta) = r_0 + \frac{d}{2\pi}\theta$) with uniform needle intervals ($\le 3.5\text{mm}$), boundary polygon clipping, and strictly **0 internal jump stitches**.
+- [x] **Curvilinear Meander / Stippling Fill (`src/stitches/meander.js`):** Continuous harmonic sine undulation ($y(x) = y_{\text{base}} + A \sin(\omega_1 x) + \frac{A}{3} \sin(\omega_2 x)$) with boundary containment clamping and smooth perimeter connector steps ($\le 3.5\text{mm}$).
+- [x] **DigitizerEngine Integration (`src/engine.js`):** Native polygon area handling for `RADIAL_SATIN`, `SPIRAL`, and `MEANDER` across single-geometry and multi-polygon island layers with auto-trim bracketing.
+- [x] **Studio UI & Demo Preset:** Added `#stitchTypeSelect` and `#importStitchType` dropdown options, and added `🏅 Crest Badge` 3-layer demo preset (`public/app.js` & `public/index.html`).
+- [x] **Comprehensive Test Suite:** 135/135 unit and integration tests passing covering radial satin density, hub feathering, 0-jump spiral continuity, meander containment, and full multi-format export (DST, EXP, PES, JEF).
+
+### v1.4.1 — Multi-Format Commercial Exporters
 - [x] **Brother / Baby Lock (`.PES` v1 / `#PEC0001`):** Native `#PES0001` container with 22-byte header, embedded `#PEC0001` block, 64-color Brother thread palette mapping, 7-bit/12-bit signed delta encoding, color change opcodes, and blank icon blocks.
 - [x] **Janome / Elna (`.JEF`):** 116-byte fixed LE header, timestamp string encoding, dynamic hoop selection (50x50, 110x110, 126x110, 140x200, 200x200), center-relative coordinate space, inverted machine Y deltas, and 79-color Janome thread chart matching.
 - [x] **Engine Integration:** Added `engine.exportPes()` and `engine.exportJef()` methods.
 - [x] **Studio Top-Bar UI:** Added one-click `.PES` and `.JEF` export buttons in `public/index.html` with reactive file download triggers in `public/app.js`.
-- [x] **Comprehensive Test Suite:** 120/120 tests passing with round-trip encode/decode verification across DST, EXP, PES, and JEF.
 
 ---
 
-## 🚀 Sub-Items for Next Release (v1.5 — Advanced Weave Fills & Extended Exporters)
+## 🚀 Sub-Items for Next Release (v1.6 — Typography & Extended Exporters)
 
-### 1. Radial & Spiral Weave Generators
-- **Curved / Radial Satin:** Implement center-out radial stepping for circular crests, badges, and flower petals with angle-adaptive stitch density.
-- **Archimedean & Logarithmic Spiral Fill:** Continuous spiral running fills from center-outward for circular shields, medallions, and badges.
-- **Meander / Stippling Fill:** Continuous non-crossing Hilbert curve or Voronoi meander paths for background textures and quilt underlays without jump cuts.
+### 1. In-Canvas Typography & Satin Lettering Engine
+- **Font-to-Satin Converter:** Ingest TrueType (`.ttf`) and OpenType (`.otf`) glyphs, extract bezier contours, dissect glyph centerlines into dual-rail guides, and synthesize clean satin columns.
+- **Mitred & Overlapping Sharp Corners:** Automated corner cuts and under-lap calculation on acute vertices (`M`, `W`, `A`, `Z`) to prevent needle deflection and excessive thread buildup.
+- **Auto-Kerning & Envelope Warping:** Bridge lettering along circular arcs, banners, and perspective envelopes.
 
 ### 2. Extended Exporter Formats
 - **Husqvarna Viking (`.VP3` / `.VIP`):** Multi-hoop definitions, coordinate scaling, and compressed block encoding.
