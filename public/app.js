@@ -564,8 +564,8 @@ function syncParamInputs() {
 function updateStats() {
   const stats = engine.getDesignStats();
   document.getElementById('statStitches').innerText = stats.stitchCount.toLocaleString();
-  document.getElementById('statWidth').innerText = `${stats.widthMm} mm`;
-  document.getElementById('statHeight').innerText = `${stats.heightMm} mm`;
+  document.getElementById('statWidth').innerHTML = `${stats.widthMm} <span class="stat-unit">mm</span>`;
+  document.getElementById('statHeight').innerHTML = `${stats.heightMm} <span class="stat-unit">mm</span>`;
   document.getElementById('statStops').innerText = stats.colorChanges;
 
   updateTimelineUI();
@@ -834,9 +834,9 @@ function render() {
 
       // 1. Soft radial radar glow under needle
       const glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, reticleR * 1.5);
-      glowGrad.addColorStop(0, 'rgba(0, 112, 243, 0.28)');
-      glowGrad.addColorStop(0.6, 'rgba(0, 112, 243, 0.08)');
-      glowGrad.addColorStop(1, 'rgba(0, 112, 243, 0)');
+      glowGrad.addColorStop(0, 'rgba(229, 169, 60, 0.28)');
+      glowGrad.addColorStop(0.6, 'rgba(229, 169, 60, 0.08)');
+      glowGrad.addColorStop(1, 'rgba(229, 169, 60, 0)');
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
       ctx.arc(0, 0, reticleR * 1.5, 0, Math.PI * 2);
@@ -846,14 +846,14 @@ function render() {
       ctx.beginPath();
       ctx.setLineDash([reticleR * 0.4, reticleR * 0.2]);
       ctx.arc(0, 0, reticleR, 0, Math.PI * 2);
-      ctx.strokeStyle = '#0070f3';
+      ctx.strokeStyle = '#e5a93c';
       ctx.lineWidth = strokeW;
       ctx.stroke();
 
       // 3. Fine Cardinal Crosshairs
       ctx.setLineDash([]);
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(0, 112, 243, 0.7)';
+      ctx.strokeStyle = 'rgba(229, 169, 60, 0.7)';
       ctx.lineWidth = strokeW * 0.8;
       // Top tick
       ctx.moveTo(0, -reticleR * 0.5);
@@ -877,10 +877,10 @@ function render() {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
       ctx.fill();
 
-      // Steel needle tip bevel
+      // Atelier gold titanium-nitride needle tip collar
       ctx.beginPath();
       ctx.arc(0, 0, needlePointR, 0, Math.PI * 2);
-      ctx.fillStyle = '#fafafa';
+      ctx.fillStyle = '#e5a93c';
       ctx.fill();
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = strokeW * 0.6;
@@ -900,17 +900,20 @@ function render() {
 
       const dist = Math.hypot(head.x - prevStitch.x, head.y - prevStitch.y);
       let cmdLabel = `STITCH ${dist.toFixed(1)}mm`;
-      let cmdBg = 'rgba(0, 112, 243, 0.95)';
-      let cmdColor = '#ffffff';
+      let cmdBorder = '#e5a93c';
+      let cmdColor = '#fafafa';
       if (head.command === StitchCommand.JUMP) {
         cmdLabel = `JUMP ${dist.toFixed(1)}mm`;
-        cmdBg = 'rgba(245, 166, 35, 0.95)';
+        cmdBorder = '#f5a623';
+        cmdColor = '#f5a623';
       } else if (head.command === StitchCommand.COLOR_CHANGE) {
         cmdLabel = 'COLOR STOP';
-        cmdBg = 'rgba(121, 40, 202, 0.95)';
+        cmdBorder = '#7928ca';
+        cmdColor = '#d8b4fe';
       } else if (head.command === StitchCommand.TRIM) {
         cmdLabel = 'TRIM';
-        cmdBg = 'rgba(244, 63, 94, 0.92)';
+        cmdBorder = '#ee0000';
+        cmdColor = '#fca5a5';
       }
 
       const textMetrics = ctx.measureText(cmdLabel);
@@ -921,14 +924,16 @@ function render() {
 
       // Connecting hairline from reticle to callout chip
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.strokeStyle = 'rgba(229, 169, 60, 0.65)';
       ctx.lineWidth = strokeW * 0.6;
       ctx.moveTo(crosshairExt * 0.7, -crosshairExt * 0.7);
       ctx.lineTo(flagX, flagY + badgeH / 2);
       ctx.stroke();
 
-      // Callout background
-      ctx.fillStyle = cmdBg;
+      // Callout background and border
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
+      ctx.strokeStyle = cmdBorder;
+      ctx.lineWidth = strokeW * 0.8;
       ctx.beginPath();
       if (typeof ctx.roundRect === 'function') {
         ctx.roundRect(flagX, flagY, badgeW, badgeH, 2 / scale);
@@ -936,6 +941,7 @@ function render() {
         ctx.rect(flagX, flagY, badgeW, badgeH);
       }
       ctx.fill();
+      ctx.stroke();
 
       // Callout text
       ctx.fillStyle = cmdColor;
@@ -1059,13 +1065,13 @@ function updateViewportTelemetry(worldCursor) {
   // Update Cursor Coordinates
   const coordsEl = document.getElementById('coordsDisplay');
   if (coordsEl && worldCursor) {
-    coordsEl.textContent = `X: ${worldCursor.x >= 0 ? '+' : ''}${worldCursor.x.toFixed(1)} Y: ${worldCursor.y >= 0 ? '+' : ''}${worldCursor.y.toFixed(1)} mm`;
+    coordsEl.innerHTML = `X: ${worldCursor.x >= 0 ? '+' : ''}${worldCursor.x.toFixed(1)} Y: ${worldCursor.y >= 0 ? '+' : ''}${worldCursor.y.toFixed(1)} <span class="telemetry-unit">mm</span>`;
   }
 
   // Update Design Dimensions
   const dimEl = document.getElementById('designDimDisplay');
   if (dimEl) {
-    dimEl.textContent = `${designW.toFixed(1)} × ${designH.toFixed(1)} mm`;
+    dimEl.innerHTML = `${designW.toFixed(1)} × ${designH.toFixed(1)} <span class="telemetry-unit">mm</span>`;
   }
 
   // Update Zoom readout
@@ -1113,9 +1119,9 @@ function updateViewportTelemetry(worldCursor) {
       statusBadge.textContent = `⚠ +${overflow.toFixed(1)}mm`;
     } else {
       statusBadge.className = 'badge';
-      statusBadge.style.background = 'rgba(16,185,129,0.15)';
-      statusBadge.style.color = '#10b981';
-      statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
+      statusBadge.style.background = 'rgba(229, 169, 60, 0.12)';
+      statusBadge.style.color = '#e5a93c';
+      statusBadge.style.borderColor = 'rgba(229, 169, 60, 0.35)';
       statusBadge.textContent = `✓ ${hoop.key}`;
     }
   }
@@ -1226,7 +1232,7 @@ window.addEventListener('mousemove', (e) => {
     currentMouseWorld = screenToWorld(mx, my);
     const coordsEl = document.getElementById('coordsDisplay');
     if (coordsEl) {
-      coordsEl.textContent = `X: ${currentMouseWorld.x >= 0 ? '+' : ''}${currentMouseWorld.x.toFixed(1)} Y: ${currentMouseWorld.y >= 0 ? '+' : ''}${currentMouseWorld.y.toFixed(1)} mm`;
+      coordsEl.innerHTML = `X: ${currentMouseWorld.x >= 0 ? '+' : ''}${currentMouseWorld.x.toFixed(1)} Y: ${currentMouseWorld.y >= 0 ? '+' : ''}${currentMouseWorld.y.toFixed(1)} <span class="telemetry-unit">mm</span>`;
     }
   }
 

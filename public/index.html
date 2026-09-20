@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EmbroideryTrace Studio — Vercel Geist Machine Digitizer</title>
+  <title>EmbroideryTrace Studio — Geist Atelier Edition</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -32,6 +32,12 @@
       --geist-error: #ee0000;
       --geist-cyan: #50e3c2;
       --geist-purple: #7928ca;
+
+      /* Atelier Bespoke Accent Tokens */
+      --atelier-brass: #e5a93c;
+      --atelier-brass-glow: rgba(229, 169, 60, 0.35);
+      --atelier-brass-faint: rgba(229, 169, 60, 0.12);
+      --atelier-brass-hover: #f5b955;
 
       /* Backwards-Compatible Tokens */
       --bg-void: #000000;
@@ -186,13 +192,24 @@
       font-family: var(--font-mono);
       font-size: 10px;
       font-weight: 600;
-      padding: 2px 6px;
+      padding: 2px 8px;
       border-radius: 4px;
-      background: var(--accents-1);
-      border: 1px solid var(--accents-2);
-      color: var(--accents-6);
+      background: var(--atelier-brass-faint);
+      border: 1px solid rgba(229, 169, 60, 0.35);
+      color: var(--atelier-brass);
       text-transform: uppercase;
       letter-spacing: 0.04em;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .brand-pip {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--atelier-brass);
+      box-shadow: 0 0 6px var(--atelier-brass-glow);
     }
 
     .header-actions {
@@ -470,6 +487,13 @@
       letter-spacing: -0.02em;
     }
 
+    .stat-unit {
+      font-size: 11px;
+      color: var(--atelier-brass);
+      font-weight: 500;
+      margin-left: 2px;
+    }
+
     .stat-label {
       font-size: 10px;
       color: var(--accents-5);
@@ -661,6 +685,12 @@
       color: var(--accents-8);
       font-weight: 500;
       white-space: nowrap;
+    }
+
+    .telemetry-unit {
+      color: var(--atelier-brass);
+      font-weight: 500;
+      margin-left: 2px;
     }
 
     /* Hoop Boundary Alert Chip */
@@ -1032,8 +1062,8 @@
     }
 
     .param-input-wrap:focus-within {
-      border-color: var(--geist-selection);
-      box-shadow: 0 0 0 1px var(--geist-selection);
+      border-color: var(--atelier-brass);
+      box-shadow: 0 0 0 1px var(--atelier-brass);
     }
 
     .param-num-input {
@@ -1059,8 +1089,9 @@
     .param-unit {
       font-family: var(--font-mono);
       font-size: 10px;
-      color: var(--accents-5);
+      color: var(--atelier-brass);
       user-select: none;
+      font-weight: 500;
     }
 
     /* Vercel Hairline Slider */
@@ -1436,7 +1467,7 @@
         <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M8 3v18M16 3v18M8 8h8M8 12h8M8 16h8"/></svg>
       </div>
       <span>EmbroideryTrace Studio</span>
-      <span class="brand-tag">v2.0 Geist</span>
+      <span class="brand-tag"><span class="brand-pip"></span>v2.0 Atelier</span>
     </div>
 
     <div class="header-actions">
@@ -1558,11 +1589,11 @@
           <span class="stat-label">Color Stops</span>
         </div>
         <div class="stat-item">
-          <span class="stat-num" id="statWidth">0 mm</span>
+          <span class="stat-num" id="statWidth">0 <span class="stat-unit">mm</span></span>
           <span class="stat-label">Width</span>
         </div>
         <div class="stat-item">
-          <span class="stat-num" id="statHeight">0 mm</span>
+          <span class="stat-num" id="statHeight">0 <span class="stat-unit">mm</span></span>
           <span class="stat-label">Height</span>
         </div>
       </div>
@@ -1703,11 +1734,11 @@
 
       <!-- Floating Viewport Telemetry Chip -->
       <div class="canvas-telemetry" id="canvasTelemetry">
-        <span class="telemetry-val" id="coordsDisplay">X: 0.0 Y: 0.0 mm</span>
+        <span class="telemetry-val" id="coordsDisplay">X: 0.0 Y: 0.0 <span class="telemetry-unit">mm</span></span>
         <div style="width:1px;height:12px;background:rgba(255,255,255,0.1);"></div>
-        <span class="telemetry-val" id="designDimDisplay">0.0 × 0.0 mm</span>
+        <span class="telemetry-val" id="designDimDisplay">0.0 × 0.0 <span class="telemetry-unit">mm</span></span>
         <div style="width:1px;height:12px;background:rgba(255,255,255,0.1);"></div>
-        <span id="hoopStatusDisplay" class="badge" style="font-size:10px;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);">✓ 100×100</span>
+        <span id="hoopStatusDisplay" class="badge" style="font-size:10px;background:rgba(229,169,60,0.12);color:var(--atelier-brass);border:1px solid rgba(229,169,60,0.35);">✓ 100×100</span>
       </div>
 
       <!-- Floating HUD: DAW-Style Stitch Timeline & Needle Deck -->
