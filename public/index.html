@@ -85,6 +85,22 @@
     .svg-icon-lg { width: 18px; height: 18px; vertical-align: -3px; }
     .svg-icon-xl { width: 22px; height: 22px; vertical-align: -4px; }
 
+    /* Precision Dark Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
     /* Top Navigation Bar */
     header {
       height: 56px;
@@ -198,10 +214,22 @@
     /* Main Workspace Layout */
     .workspace {
       display: grid;
-      grid-template-columns: 280px 1fr 310px;
+      grid-template-columns: minmax(280px, 315px) minmax(380px, 1fr) minmax(280px, 320px);
       flex: 1;
       height: calc(100vh - 56px);
       overflow: hidden;
+      min-width: 0;
+    }
+
+    @media (max-width: 1200px) {
+      .workspace {
+        grid-template-columns: 280px 1fr 285px;
+      }
+    }
+    @media (max-width: 980px) {
+      .workspace {
+        grid-template-columns: 250px 1fr 260px;
+      }
     }
 
     /* Left Sidebar: Layers & Presets */
@@ -210,7 +238,9 @@
       border-right: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
       overflow-y: auto;
+      min-width: 0;
     }
 
     .section-title {
@@ -234,6 +264,8 @@
       gap: 6px;
       padding: 0 16px;
       flex: 1;
+      min-width: 0;
+      overflow-x: hidden;
     }
 
     .layer-card {
@@ -243,6 +275,8 @@
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.15s ease;
+      min-width: 0;
+      overflow: hidden;
     }
 
     .layer-card:hover {
@@ -329,19 +363,21 @@
       top: 16px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(17, 24, 39, 0.85);
+      background: rgba(11, 15, 25, 0.94);
       backdrop-filter: blur(12px);
       border: 1px solid var(--border-subtle);
       border-radius: 30px;
-      padding: 5px 8px;
+      padding: 4px 6px;
       display: flex;
-      gap: 6px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
       z-index: 5;
+      max-width: calc(100% - 24px);
     }
 
     .tool-btn {
-      padding: 6px 14px;
+      padding: 6px 12px;
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
@@ -353,11 +389,27 @@
       align-items: center;
       gap: 6px;
       transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tool-btn:hover {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.06);
     }
 
     .tool-btn.active {
-      background: var(--accent-blue);
-      color: #fff;
+      background: var(--accent-blue) !important;
+      color: #fff !important;
+    }
+
+    @media (max-width: 1240px) {
+      .tool-btn span {
+        display: none;
+      }
+      .tool-btn {
+        padding: 7px;
+      }
     }
 
     /* Floating Playback Bar */
@@ -366,7 +418,7 @@
       bottom: 16px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(17, 24, 39, 0.85);
+      background: rgba(11, 15, 25, 0.94);
       backdrop-filter: blur(12px);
       border: 1px solid var(--border-subtle);
       border-radius: 12px;
@@ -374,9 +426,10 @@
       display: flex;
       align-items: center;
       gap: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
       z-index: 5;
-      width: 540px;
+      width: 520px;
+      max-width: calc(100% - 32px);
     }
 
     .playhead-slider {
@@ -391,7 +444,9 @@
       border-left: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
       overflow-y: auto;
+      min-width: 0;
     }
 
     .form-group {
@@ -748,7 +803,7 @@
         <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M8 3v18M16 3v18M8 8h8M8 12h8M8 16h8"/></svg>
       </div>
       <span>EmbroideryTrace Studio</span>
-      <span class="brand-tag">v1.6 Core</span>
+      <span class="brand-tag">v1.7 Core</span>
     </div>
 
     <div class="header-actions">
@@ -770,8 +825,8 @@
           <span>Export Embroidery</span>
           <svg class="svg-icon" viewBox="0 0 24 24" id="exportChevron" style="width:11px;height:11px;transition:transform 0.15s ease;"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="export-dropdown-menu" id="exportDropdownMenu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:8px;box-shadow:0 12px 28px rgba(0,0,0,0.6),0 4px 12px rgba(0,0,0,0.4);min-width:255px;z-index:999;padding:6px;backdrop-filter:blur(16px);">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.06em;padding:6px 10px 4px 10px;">Commercial Embroidery Formats</div>
+        <div class="export-dropdown-menu" id="exportDropdownMenu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#0b0f19;border:1px solid var(--border-subtle);border-radius:8px;box-shadow:0 16px 36px rgba(0,0,0,0.7),0 4px 12px rgba(0,0,0,0.5);min-width:260px;z-index:999;padding:6px;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.06em;padding:6px 10px 6px 10px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">Commercial Embroidery Formats</div>
           
           <button class="export-option-item" id="exportDstBtn" style="width:100%;background:transparent;border:none;border-radius:6px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;color:#f8fafc;text-align:left;transition:background 0.15s ease;">
             <div style="display:flex;align-items:center;gap:9px;">
