@@ -18,7 +18,13 @@ This document outlines the strategic roadmap and release milestones for the Artw
 
 ## ✅ Completed Milestones
 
-### v1.7.0 (Current Release) — UI/UX Overhaul & Zero-Emoji Vector Icon System
+### v1.8.0 (Current Release) — Phase 7: Comprehensive User-Facing Documentation & In-App Help Center
+- [x] **In-App Searchable Help Center Modal (`#helpModal`):** 8 navigable tabs (Interface Anatomy, Import Artwork Deep Dive, Lettering & Arc Warping, Weave Types, Reticle & DAW Simulation, Commercial Exporters, Hotkeys, Troubleshooting FAQ) with real-time text query filtering, `?` / `F1` trigger hotkeys, and escape navigation.
+- [x] **Standalone Visual User Manual (`public/user-guide.html`):** Full-screen responsive guide in Geist Atelier styling with sticky sub-navigation, real-time client filter, high-resolution annotated studio screenshots, and parameter comparison tables.
+- [x] **Production Parameter Guides:** In-depth documentation of mathematical digitizing parameters: Target Hoop Width (mm scaling), Grain Flow Angle (directional sheen alignment), Detail Smoothing (RDP tolerance $\epsilon$), CIELAB K-Means++ clustering, Min Area Cutoff, and the 6mm Rule (Auto-Satin vs Tatami).
+- [x] **Second Brain & Developer Manual Sync:** Synchronized documentation in `/dev_docs/embroidery_studio_user_manual.md` and Obsidian Second Brain at `second brain/Resources/EmbroideryTrace Studio User Guide.md`.
+
+### v1.7.0 — UI/UX Overhaul & Zero-Emoji Vector Icon System
 - [x] **OLED Industrial Design System Tokens:** Configured dark theme palette (`#090d16` canvas, `#0f172a` surface), Doppelrand border insets, typography scales, and spring physics micro-interactions (`transform: scale(0.975)`).
 - [x] **Comprehensive Zero-Emoji Vector Icon Library:** Replaced all emojis across entire UI with unified inline vector SVGs (1.75px stroke, rounded terminals, `currentColor`).
 - [x] **Layer Visibility Toggling:** Non-destructive per-layer eye/eye-off toggle integrated into sequence manager and canvas render loop.

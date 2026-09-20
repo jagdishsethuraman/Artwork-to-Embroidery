@@ -1255,6 +1255,32 @@
       border-radius: 4px;
     }
 
+    .help-tab-btn {
+      text-align: left;
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 7px 10px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--accents-6);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .help-tab-btn:hover {
+      background: var(--accents-1);
+      color: var(--accents-8);
+    }
+    .help-tab-btn.active {
+      background: var(--accents-2);
+      color: var(--accents-8);
+      border-color: var(--accents-3);
+      font-weight: 600;
+    }
+
     .dropzone {
       border: 1px dashed var(--accents-3);
       background: var(--accents-1);
@@ -1487,6 +1513,10 @@
       <button class="btn" id="btnHeaderLettering" title="Add typography and satin lettering">
         <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
         <span>Add Lettering</span>
+      </button>
+      <button class="btn" id="btnOpenHelp" title="User Manual & Help Guide [?]">
+        <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Help & Guide</span>
       </button>
       <div class="export-dropdown-wrapper" id="exportDropdownWrapper" style="position:relative;display:inline-block;">
         <button class="btn btn-primary" id="btnExportDropdownToggle">
@@ -2166,6 +2196,248 @@
               <span>Add Lettering Layer</span>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-App Interactive Help & User Guide Modal (Phase 7) -->
+  <div id="helpModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card modal-card-lg" style="height:86vh;max-height:86vh;display:flex;flex-direction:column;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24" style="color:var(--atelier-brass);"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div>
+            <h3 style="margin:0;font-size:15px;font-weight:700;color:#f8fafc;">EmbroideryTrace Studio — Help & User Guide</h3>
+            <div style="font-size:11px;color:var(--accents-5);">Visual User Manual & Commercial Digitizer Handbook • v2.0 Atelier</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <a href="/user-guide.html" target="_blank" class="btn" style="padding:4px 10px;font-size:11px;text-decoration:none;border-color:rgba(229,169,60,0.4);color:var(--atelier-brass);background:var(--atelier-brass-faint);" title="Open standalone visual user guide in new tab">
+            <span>Open Full Manual ↗</span>
+          </a>
+          <button id="closeHelpBtn" class="btn" style="padding:4px 10px;font-size:14px;background:none;border:none;color:#94a3b8;cursor:pointer;">
+            <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <!-- Left Help Navigation Tabs -->
+        <div style="width:230px;background:#050505;border-right:1px solid var(--accents-2);padding:14px 10px;display:flex;flex-direction:column;gap:5px;overflow-y:auto;flex-shrink:0;">
+          <input type="text" id="helpModalSearch" placeholder="Filter topics... (e.g. grain flow, hoop, underlay)" style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:6px;padding:6px 8px;font-size:11px;color:#fff;outline:none;margin-bottom:8px;font-family:inherit;" />
+          <button class="help-tab-btn active" data-tab="helpTabAnatomy">1. What is Where</button>
+          <button class="help-tab-btn" data-tab="helpTabImport">2. Import Artwork Deep Dive</button>
+          <button class="help-tab-btn" data-tab="helpTabLettering">3. Lettering & Arc Warping</button>
+          <button class="help-tab-btn" data-tab="helpTabParams">4. Weave Types & Parameters</button>
+          <button class="help-tab-btn" data-tab="helpTabReticle">5. Reticle & DAW Simulation</button>
+          <button class="help-tab-btn" data-tab="helpTabExporters">6. Machine Formats (DST/PES)</button>
+          <button class="help-tab-btn" data-tab="helpTabHotkeys">7. Keyboard Shortcuts</button>
+          <button class="help-tab-btn" data-tab="helpTabFaq">8. Troubleshooting FAQ</button>
+        </div>
+
+        <!-- Right Help Content Area -->
+        <div style="flex:1;padding:20px 24px;overflow-y:auto;" id="helpTabContentContainer">
+          
+          <!-- Tab 1: What is Where -->
+          <div class="help-tab-content" id="helpTabAnatomy" style="display:block;">
+            <h4 style="font-size:16px;font-weight:700;color:var(--accents-8);margin-bottom:8px;">1. Interface Anatomy: What is Where</h4>
+            <p style="color:var(--accents-6);font-size:12.5px;margin-bottom:14px;">The studio follows an ergonomic 3-column industrial CAD layout wrapped in the Vercel Geist design system with Atelier Raw Brass accents:</p>
+
+            <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;">
+              <div style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:8px;padding:12px 14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--accents-8);display:flex;align-items:center;gap:6px;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--atelier-brass);"></span>
+                  <span>Left Sidebar: Presets & Spool Channels</span>
+                </div>
+                <div style="font-size:11.5px;color:var(--accents-6);margin-top:4px;">
+                  • <strong>Design Presets:</strong> Quick-load <em>Daisy</em>, <em>Monogram</em>, or <em>Crest Badge</em>.<br>
+                  • <strong>Thread Layers Stack:</strong> Drag handle (<code>⠿</code>) to reorder physical construction sequence (underlay before top outlines); eye icon (<code>👁</code>) to toggle non-destructive visibility; spool chip with Madeira thread codes.<br>
+                  • <strong>Design Telemetry Card:</strong> Live counters for Total Stitches, Machine Stops, and Width / Height in mm.
+                </div>
+              </div>
+
+              <div style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:8px;padding:12px 14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--accents-8);display:flex;align-items:center;gap:6px;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--atelier-brass);"></span>
+                  <span>Center Viewport: CAD Canvas & DAW Transport</span>
+                </div>
+                <div style="font-size:11.5px;color:var(--accents-6);margin-top:4px;">
+                  • <strong>Floating HUD:</strong> Select Tool (<code>V</code>), Knife Split (<code>K</code>), Hoops (<code>H</code>), Zoom (<code>+</code>/<code>-</code>/<code>0</code>/<code>F</code>), Metric Grid (<code>G</code>), Spotlight Vignette (<code>B</code>), Reset (<code>R</code>), Diagnostics (<code>D</code>).<br>
+                  • <strong>CAD Virtual Needle Reticle:</strong> Screen-invariant dashed targeting ring, crosshairs, and live machine command flag (<code>STITCH</code>, <code>JUMP</code>, <code>TRIM</code>, <code>COLOR STOP</code>).<br>
+                  • <strong>DAW Timeline Deck:</strong> Multi-layer color-blocked stitch track with one-click layer seeking, transport controls (<code>⏮</code>, <code>⏪</code>, <code>▶/⏸</code>, <code>⏩</code>, <code>🔁</code>), and speeds (1x to 100x).
+                </div>
+              </div>
+
+              <div style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:8px;padding:12px 14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--accents-8);display:flex;align-items:center;gap:6px;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--atelier-brass);"></span>
+                  <span>Right Sidebar: Parameters & Weave Engine</span>
+                </div>
+                <div style="font-size:11.5px;color:var(--accents-6);margin-top:4px;">
+                  • <strong>Weave Type:</strong> Select Twill, Tatami, Satin, Radial, Spiral, Meander, or Running Outline.<br>
+                  • <strong>Editable Parameter Inputs:</strong> Density (0.4mm), Step Length (3.5mm), Angle (45°), Pull Comp (+0.3mm).<br>
+                  • <strong>Action Button:</strong> Inverted primary <code>[⚡ Generate / Re-weave Stitches]</code>.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Import Artwork Deep Dive -->
+          <div class="help-tab-content" id="helpTabImport" style="display:none;">
+            <h4 style="font-size:16px;font-weight:700;color:var(--accents-8);margin-bottom:8px;">2. Import Artwork Window: Complete Guide</h4>
+            <p style="color:var(--accents-6);font-size:12.5px;margin-bottom:14px;">Converting raster images (PNG, JPG, WebP) to embroidery requires translating flat pixels into 3D physical thread paths. Here is why each slider exists:</p>
+
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:6px;padding:10px 14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--atelier-brass);">Target Hoop Width (Physical Scaling)</div>
+                <div style="font-size:11.5px;color:#ccc;margin-top:3px;">
+                  <strong>Crucial Physical Parameter:</strong> Digital images have pixel dimensions (e.g. 1000px), but embroidery machines require millimeters. Setting Target Hoop Width (e.g. <code>75 mm</code>) scales the design to real-world embroidery size to fit inside your hoop.
+                </div>
+              </div>
+
+              <div style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:6px;padding:10px 14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--atelier-brass);">Thread Colors (K-Means++ in CIELAB)</div>
+                <div style="font-size:11.5px;color:#ccc;margin-top:3px;">
+                  An embroidery machine sews with physical thread spools (typically 1 to 15 colors). This slider clusters millions of anti-aliased RGB pixels into distinct thread channels and matches them to commercial Madeira Polyneon thread spools.
+                </div>
+              </div>
+
+              <div style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:6px;padding:10px 14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--atelier-brass);">Detail Smoothing (RDP Spline Tolerance)</div>
+                <div style="font-size:11.5px;color:#ccc;margin-top:3px;">
+                  Raster pixels create jagged staircase edges. If a machine needle tried to puncture every pixel corner, it would create thousands of micro-stitches (<0.3mm), chewing through fabric and snapping needles. Detail Smoothing smooths pixel steps into continuous curved machine splines. Recommended: <code>0.8 mm</code>.
+                </div>
+              </div>
+
+              <div style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:6px;padding:10px 14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--atelier-brass);">Grain Flow Angle (Light Reflection Alignment)</div>
+                <div style="font-size:11.5px;color:#ccc;margin-top:3px;">
+                  Embroidery thread is cylindrical and highly reflective; light bounces perpendicular to stitch direction. Setting a unified Grain Flow Angle (default <code>45°</code>) ensures colors look consistent under indoor lighting and prevents seam clashing.
+                </div>
+              </div>
+
+              <div style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:6px;padding:10px 14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--atelier-brass);">The 6mm Rule: Satin vs. Tatami/Twill</div>
+                <div style="font-size:11.5px;color:#ccc;margin-top:3px;">
+                  • <strong>1.0mm – 6.0mm:</strong> High-sheen dual-rail <em>Satin Stitches</em>.<br>
+                  • <strong>> 6.0mm:</strong> Structural <em>Tatami / Twill Fill</em> with 3.5mm step penetrations to prevent loose threads from snagging.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Lettering & Arc Warping -->
+          <div class="help-tab-content" id="helpTabLettering" style="display:none;">
+            <h4 style="font-size:16px;font-weight:700;color:var(--accents-8);margin-bottom:8px;">3. In-Canvas Typography & Satin Lettering</h4>
+            <p style="color:var(--accents-6);font-size:12.5px;margin-bottom:14px;">Click <strong>[Add Lettering]</strong> in the top header to generate satin and tatami text:</p>
+
+            <div style="font-size:11.5px;color:#ccc;display:flex;flex-direction:column;gap:10px;">
+              <div>• <strong>Font Styles:</strong> Collegiate Varsity / Block, Modern Sans-Serif, Elegant Serif, Cursive Script, and Monospace.</div>
+              <div>• <strong>Arc Warping (-60° to +60°):</strong> Bends text along a polar arch (positive values for convex arches, negative for concave ribbons). Warping occurs prior to stitch compilation so needle drops stay perpendicular to the curve.</div>
+              <div>• <strong>Inner Hole Detection:</strong> Letters like <code>A</code>, <code>B</code>, <code>D</code>, <code>O</code>, <code>P</code>, <code>0</code> automatically detect negative cutouts; stitches route cleanly around letter holes without sewing over negative space.</div>
+              <div>• <strong>Size Recommendation:</strong> Keep letter height $\ge 12\text{mm}$ for crisp satin definition with standard 40wt thread.</div>
+            </div>
+          </div>
+
+          <!-- Tab 4: Weave Types & Parameters -->
+          <div class="help-tab-content" id="helpTabParams" style="display:none;">
+            <h4 style="font-size:16px;font-weight:700;color:var(--accents-8);margin-bottom:8px;">4. Weave Types & Engineering Parameters</h4>
+            
+            <div style="font-size:11.5px;color:#ccc;display:flex;flex-direction:column;gap:12px;">
+              <div>
+                <strong style="color:var(--atelier-brass);">Weave Catalog:</strong><br>
+                • <strong>Twill Weave:</strong> 4-step staggered diagonal grain pattern with rich textile depth.<br>
+                • <strong>Tatami Fill:</strong> Standard 3-step staggered scanline brickwork for maximum durability.<br>
+                • <strong>Satin:</strong> Dual-rail zigzag leaps for high-gloss columns and outlines (<6mm).<br>
+                • <strong>Radial Satin:</strong> 360° circular ray-casting with feathered inner hub anti-perforation.<br>
+                • <strong>Archimedean Spiral:</strong> Single continuous spiral line with strictly 0 jumps and 0 trims.<br>
+                • <strong>Curvilinear Meander:</strong> Organic continuous sine stippling replicating hand-quilting.
+              </div>
+              <div>
+                <strong style="color:var(--atelier-brass);">Key Physical Parameters:</strong><br>
+                • <strong>Density (Row Pitch) [0.40mm]:</strong> Distance between rows. Decrease to 0.35mm on coarse knit fabrics.<br>
+                • <strong>Step Length [3.5mm]:</strong> Distance between needle punctures along a row.<br>
+                • <strong>Pull Compensation [+0.30mm]:</strong> Outward expansion to counter fabric shrinkage from thread tension. Use +0.5mm on stretchy knits.
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 5: Reticle & DAW Simulation -->
+          <div class="help-tab-content" id="helpTabReticle" style="display:none;">
+            <h4 style="font-size:16px;font-weight:700;color:var(--accents-8);margin-bottom:8px;">5. Reticle & DAW Simulation Deck</h4>
+            <p style="color:var(--accents-6);font-size:12.5px;margin-bottom:14px;">Preview the exact mechanical sequence of needle drops before production:</p>
+
+            <div style="font-size:11.5px;color:#ccc;display:flex;flex-direction:column;gap:10px;">
+              <div>• <strong>CAD Virtual Needle Reticle:</strong> Screen-invariant dashed targeting ring, crosshairs, titanium-nitride gold needle collar, and floating callout flag showing current operation (<code>STITCH 2.4mm</code>, <code>JUMP</code>, <code>TRIM</code>, <code>COLOR STOP</code>).</div>
+              <div>• <strong>DAW Multi-Layer Timeline Track:</strong> Color-coded segments proportional to each thread spool's stitch count. Click any colored block to seek directly to that layer.</div>
+              <div>• <strong>Transport Controls:</strong> Play / Pause (<code>P</code>), Step -10 (<code>[</code>), Step +10 (<code>]</code>), Loop Toggle (<code>L</code>), and Speed Presets (1x to 100x).</div>
+            </div>
+          </div>
+
+          <!-- Tab 6: Exporters & Machine Formats -->
+          <div class="help-tab-content" id="helpTabExporters" style="display:none;">
+            <h4 style="font-size:16px;font-weight:700;color:var(--accents-8);margin-bottom:8px;">6. Machine Formats & Production Compliance</h4>
+            
+            <div style="font-size:11.5px;color:#ccc;display:flex;flex-direction:column;gap:12px;">
+              <div>
+                <strong style="color:var(--atelier-brass);">Supported Formats:</strong><br>
+                • <strong>Tajima (.DST):</strong> Universal commercial multi-head format (Tajima, Barudan, SWF, Melco, Ricoma).<br>
+                • <strong>Brother (.PES):</strong> Home and semi-pro format with embedded Brother thread palette.<br>
+                • <strong>Janome (.JEF):</strong> Janome/Elna format with automatic hoop boundary assignment.<br>
+                • <strong>Melco (.EXP):</strong> Commercial expanded binary stitch stream.<br>
+                • <strong>Vector (.SVG) & High-Res (.PNG):</strong> Clean paths and client visual proofs.
+              </div>
+              <div>
+                <strong style="color:var(--atelier-brass);">Commercial Production Gates:</strong><br>
+                • <strong>TC-501:</strong> Long stitches clamped to $\le 7.0\text{mm}$ (subdivided into safe sewing stitches).<br>
+                • <strong>TC-502:</strong> Jumps clamped to $\le 12.1\text{mm}$ to prevent frame motor loss.<br>
+                • <strong>TC-503:</strong> Travels $>5.0\text{mm}$ inject Tajima 3-jump hardware trims and 4-point star tie-off locks.<br>
+                • <strong>TC-504:</strong> Micro-stitches $<0.35\text{mm}$ suppressed to prevent thread balling and fabric holes.
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 7: Hotkeys -->
+          <div class="help-tab-content" id="helpTabHotkeys" style="display:none;">
+            <h4 style="font-size:16px;font-weight:700;color:var(--accents-8);margin-bottom:8px;">7. Complete Keyboard Shortcuts</h4>
+            <div style="font-family:var(--font-mono);font-size:11px;color:#ccc;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div><code>V</code> / <code>Space+Drag</code> : Pan Camera</div>
+              <div><code>K</code> : Split Knife Tool</div>
+              <div><code>G</code> : Toggle 10mm CAD Grid</div>
+              <div><code>B</code> : Toggle Spotlight Vignette</div>
+              <div><code>H</code> : Cycle Machine Hoops</div>
+              <div><code>F</code> : Fit Design to Viewport</div>
+              <div><code>0</code> : Reset Zoom 100%</div>
+              <div><code>+</code> / <code>-</code> : Zoom In / Zoom Out</div>
+              <div><code>P</code> / <code>Space</code> : Play / Pause</div>
+              <div><code>L</code> : Toggle Simulation Loop</div>
+              <div><code>[</code> / <code>]</code> : Step -10 / +10 Stitches</div>
+              <div><code>\</code> / <code>Home</code> : Jump to Start</div>
+              <div><code>Cmd+Z</code> / <code>Cmd+Shift+Z</code> : Undo / Redo</div>
+              <div><code>?</code> / <code>F1</code> : Open This User Guide</div>
+            </div>
+          </div>
+
+          <!-- Tab 8: FAQ -->
+          <div class="help-tab-content" id="helpTabFaq" style="display:none;">
+            <h4 style="font-size:16px;font-weight:700;color:var(--accents-8);margin-bottom:8px;">8. Troubleshooting & FAQ</h4>
+            <div style="font-size:11.5px;color:#ccc;display:flex;flex-direction:column;gap:12px;">
+              <div>
+                <strong style="color:var(--atelier-brass);">Q: Why did my design pull in and leave gaps around borders?</strong><br>
+                A: Standard fabric tension. Increase <strong>Pull Compensation</strong> from <code>+0.3mm</code> to <code>+0.5mm</code> and confirm <strong>Generate Underlay</strong> is checked.
+              </div>
+              <div>
+                <strong style="color:var(--atelier-brass);">Q: What does the crimson "⚠ +X mm" badge mean?</strong><br>
+                A: The design exceeds the physical sewable boundaries of the active hoop. Select a larger hoop in the top HUD (<code>H</code>) or re-import with a smaller <strong>Target Hoop Width</strong>.
+              </div>
+              <div>
+                <strong style="color:var(--atelier-brass);">Q: Why does my machine stop multiple times for one thread color?</strong><br>
+                A: In EmbroideryTrace Studio, disconnected patches of the same color are automatically grouped into single <code>ColorLayer</code> channels, eliminating redundant stops.
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

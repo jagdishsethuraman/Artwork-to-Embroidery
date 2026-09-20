@@ -2168,6 +2168,8 @@ document.getElementById('btnConvertAndGenerate')?.addEventListener('click', () =
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    if (typeof helpModal !== 'undefined' && helpModal && helpModal.style.display === 'flex') closeHelpModal();
+    if (typeof letteringModal !== 'undefined' && letteringModal && letteringModal.style.display === 'flex') letteringModal.style.display = 'none';
     if (diagnosticsModal && diagnosticsModal.style.display === 'flex') closeDiagnosticsModal();
     if (importModal && importModal.style.display === 'flex') closeImportModal();
     closeExportDropdown();
@@ -2240,6 +2242,9 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key === 'End') {
     e.preventDefault();
     seekToEnd();
+  } else if (e.key === '?' || e.key === 'F1') {
+    e.preventDefault();
+    openHelpModal();
   }
 });
 
@@ -2836,6 +2841,60 @@ if (letteringModal) {
       }
     };
   }
+}
+
+// Help & User Guide Modal Handlers (Phase 7)
+const btnOpenHelp = document.getElementById('btnOpenHelp');
+const helpModal = document.getElementById('helpModal');
+const closeHelpBtn = document.getElementById('closeHelpBtn');
+const helpModalSearch = document.getElementById('helpModalSearch');
+
+function openHelpModal() {
+  if (helpModal) helpModal.style.display = 'flex';
+}
+
+function closeHelpModal() {
+  if (helpModal) helpModal.style.display = 'none';
+}
+
+if (btnOpenHelp) btnOpenHelp.onclick = openHelpModal;
+if (closeHelpBtn) closeHelpBtn.onclick = closeHelpModal;
+if (helpModal) {
+  helpModal.onclick = (e) => {
+    if (e.target === helpModal) closeHelpModal();
+  };
+}
+
+// Help Modal Tab Switching
+const helpTabButtons = document.querySelectorAll('.help-tab-btn');
+const helpTabContents = document.querySelectorAll('.help-tab-content');
+
+helpTabButtons.forEach(btn => {
+  btn.onclick = () => {
+    helpTabButtons.forEach(b => b.classList.remove('active'));
+    helpTabContents.forEach(c => c.style.display = 'none');
+    btn.classList.add('active');
+    const targetId = btn.getAttribute('data-tab');
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) targetEl.style.display = 'block';
+  };
+});
+
+// Help Modal Search / Filter
+if (helpModalSearch) {
+  helpModalSearch.oninput = (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    if (!q) {
+      const activeBtn = document.querySelector('.help-tab-btn.active');
+      const targetId = activeBtn ? activeBtn.getAttribute('data-tab') : 'helpTabAnatomy';
+      helpTabContents.forEach(c => c.style.display = (c.id === targetId ? 'block' : 'none'));
+      return;
+    }
+    helpTabContents.forEach(c => {
+      const txt = c.textContent.toLowerCase();
+      c.style.display = txt.includes(q) ? 'block' : 'none';
+    });
+  };
 }
 
 // Kick off

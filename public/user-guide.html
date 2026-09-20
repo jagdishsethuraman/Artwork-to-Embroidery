@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmbroideryTrace Studio — Visual User Guide & Manual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000000;
+      --fg: #ededed;
+      --accents-1: #111111;
+      --accents-2: #222222;
+      --accents-3: #333333;
+      --accents-4: #444444;
+      --accents-5: #666666;
+      --accents-6: #888888;
+      --accents-7: #eaeaea;
+      --accents-8: #fafafa;
+      --atelier-brass: #e5a93c;
+      --atelier-brass-faint: rgba(229, 169, 60, 0.12);
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Left Navigation Sidebar */
+    .sidebar {
+      width: 280px;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      background: #050505;
+      border-right: 1px solid var(--accents-2);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accents-8);
+      text-decoration: none;
+    }
+
+    .brand-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--atelier-brass-faint);
+      border: 1px solid rgba(229, 169, 60, 0.35);
+      color: var(--atelier-brass);
+    }
+
+    .nav-search {
+      width: 100%;
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--accents-8);
+      font-family: inherit;
+      font-size: 12px;
+      outline: none;
+      transition: border 0.15s ease;
+    }
+
+    .nav-search:focus {
+      border-color: var(--atelier-brass);
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-section-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accents-5);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 14px;
+      margin-bottom: 4px;
+      padding-left: 8px;
+    }
+
+    .nav-item a {
+      display: block;
+      color: var(--accents-6);
+      text-decoration: none;
+      font-size: 12.5px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: all 0.12s ease;
+    }
+
+    .nav-item a:hover {
+      color: var(--accents-8);
+      background: var(--accents-1);
+    }
+
+    .nav-item a.active {
+      color: var(--accents-8);
+      background: var(--accents-2);
+      font-weight: 500;
+    }
+
+    /* Main Content Area */
+    .content-wrap {
+      flex: 1;
+      padding: 48px 64px 100px;
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--accents-8);
+      margin-bottom: 8px;
+    }
+
+    .lead {
+      font-size: 16px;
+      color: var(--accents-6);
+      margin-bottom: 36px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--accents-8);
+      margin-top: 48px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--accents-2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accents-8);
+      margin-top: 24px;
+      margin-bottom: 10px;
+    }
+
+    p { margin-bottom: 14px; color: #cccccc; }
+
+    /* Media & Callout Visuals */
+    .screenshot-card {
+      background: #0a0a0a;
+      border: 1px solid var(--accents-2);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 20px 0;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .screenshot-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-bottom: 1px solid var(--accents-2);
+    }
+
+    .screenshot-caption {
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--accents-6);
+      background: #050505;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge-brass {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--atelier-brass-faint);
+      color: var(--atelier-brass);
+      border: 1px solid rgba(229, 169, 60, 0.35);
+    }
+
+    /* Spec Tables */
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13px;
+    }
+
+    .spec-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--accents-1);
+      border-bottom: 1px solid var(--accents-2);
+      color: var(--accents-7);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .spec-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--accents-2);
+      color: #cccccc;
+    }
+
+    .spec-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .mono-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: #111;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--accents-3);
+      color: var(--accents-8);
+    }
+
+    /* Callout Note */
+    .callout {
+      background: rgba(229, 169, 60, 0.06);
+      border-left: 3px solid var(--atelier-brass);
+      border-radius: 0 6px 6px 0;
+      padding: 14px 18px;
+      margin: 20px 0;
+      font-size: 13px;
+      color: #eaeaea;
+    }
+
+    .callout strong { color: var(--atelier-brass); }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--accents-6);
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--accents-2);
+      margin-bottom: 24px;
+      transition: all 0.15s ease;
+    }
+
+    .back-btn:hover {
+      color: var(--accents-8);
+      border-color: var(--accents-3);
+      background: var(--accents-1);
+    }
+
+    @media (max-width: 900px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: static; }
+      .content-wrap { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left Sidebar Navigation -->
+  <aside class="sidebar">
+    <a href="/" class="brand">
+      <div style="width:20px;height:20px;background:#111;border:1px solid #222;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;">
+        <svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M6 3h12M6 21h12M8 3v18M16 3v18M8 8h8M8 12h8M8 16h8"/></svg>
+      </div>
+      <span>EmbroideryTrace</span>
+      <span class="brand-tag">v2.0</span>
+    </a>
+
+    <input type="text" class="nav-search" id="guideSearch" placeholder="Search manual... (e.g. grain flow, hoop, underlay)" oninput="filterSections(this.value)">
+
+    <ul class="nav-list" id="navList">
+      <li class="nav-section-title">Getting Started</li>
+      <li class="nav-item"><a href="#overview">1. Studio Overview</a></li>
+      <li class="nav-item"><a href="#anatomy">2. Interface Anatomy</a></li>
+
+      <li class="nav-section-title">Core Workflows</li>
+      <li class="nav-item"><a href="#import-modal">3. Import Artwork Deep Dive</a></li>
+      <li class="nav-item"><a href="#typography">4. Typography & Lettering</a></li>
+      <li class="nav-item"><a href="#stitches">5. Weave Types & Parameters</a></li>
+      <li class="nav-item"><a href="#simulation">6. CAD Reticle & Simulation</a></li>
+
+      <li class="nav-section-title">Production & Safety</li>
+      <li class="nav-item"><a href="#exporters">7. Exporters & Machine Formats</a></li>
+      <li class="nav-item"><a href="#shortcuts">8. Keyboard Shortcuts</a></li>
+      <li class="nav-item"><a href="#faq">9. Troubleshooting & FAQ</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Documentation Body -->
+  <main class="content-wrap">
+    <a href="/" class="back-btn">← Back to Live Studio</a>
+
+    <section id="overview">
+      <h1>EmbroideryTrace Studio User Manual</h1>
+      <div class="lead">Official visual documentation and operational reference for converting digital artwork and typography into commercial embroidery stitch files.</div>
+
+      <div class="screenshot-card">
+        <img src="/docs/images/studio_overview.png" alt="EmbroideryTrace Studio Interface Overview">
+        <div class="screenshot-caption">
+          <span>Figure 1: EmbroideryTrace Studio Interface (Geist Atelier Edition with Vercel Vignette Void)</span>
+          <span class="badge-brass">v2.0 Atelier</span>
+        </div>
+      </div>
+
+      <p>EmbroideryTrace Studio is an in-browser CAD workstation built specifically for commercial embroidery machine digitizing. It runs completely offline on your local machine with 0 external network transmission, guaranteeing absolute design privacy.</p>
+    </section>
+
+    <section id="anatomy">
+      <h2>2. Interface Anatomy: What is Where</h2>
+      <p>The workspace is split into three unified sections designed for seamless left-to-right digitizing:</p>
+      
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Workspace Section</th>
+            <th>Core Controls</th>
+            <th>Primary Function</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Left Sidebar</strong></td>
+            <td>Presets (Daisy, Mono, Crest), Layer Stack, Eye Visibility Toggle, 6-Dot Drag Handles, Telemetry Card</td>
+            <td>Sequence thread colors, control sewing order (underlay foundations before top outlines), and inspect millimeter dimensions.</td>
+          </tr>
+          <tr>
+            <td><strong>Center Viewport</strong></td>
+            <td>HUD (Inspect Pan, Knife Split, Hoops, Zoom, Metric Grid, Vignette), Reticle, DAW Timeline Deck</td>
+            <td>Real-time 60fps canvas stage. Inspect needle drops, simulate machine sewing, check hoop clearance, and analyze stitch commands.</td>
+          </tr>
+          <tr>
+            <td><strong>Right Sidebar</strong></td>
+            <td>Weave Selector, Stitch Density, Step Length, Stitch Angle, Pull Comp, Underlay, Generate Button</td>
+            <td>Calibrate computational textile parameters with editable numeric fields and 3px hairline sliders.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="import-modal">
+      <h2>3. Deep Dive: The Import Artwork Window</h2>
+      <p>Clicking <strong>[Import Artwork]</strong> in the top header opens the 3-pane raster tracing and color quantization engine.</p>
+
+      <div class="screenshot-card">
+        <img src="/docs/images/import_modal_preview.png" alt="Import Artwork 3-Pane Pipeline">
+        <div class="screenshot-caption">
+          <span>Figure 2: 3-Pane Live Pipeline (Original Bitmap → CIELAB Quantization → Marching Squares Vector Outlines)</span>
+          <span class="badge-brass">K-Means++ & Marching Squares</span>
+        </div>
+      </div>
+
+      <p>The pipeline operates across 3 synchronized columns:</p>
+      <ol style="margin-left: 20px; margin-bottom: 20px; color: #ccc;">
+        <li><strong>Original Bitmap:</strong> Shows the raw RGB raster file with dimensions in pixels.</li>
+        <li><strong>Thread Palette:</strong> Shows the isolated color clusters matched to physical Madeira Polyneon 40wt thread spools.</li>
+        <li><strong>Vector Outlines:</strong> Shows the closed vector contours extracted via marching squares with negative hole punch-outs.</li>
+      </ol>
+
+      <div class="screenshot-card">
+        <img src="/docs/images/import_modal_controls.png" alt="Import Artwork Parameter Controls">
+        <div class="screenshot-caption">
+          <span>Figure 3: Import Artwork Parameters (Target Width, Detail Smoothing, Grain Flow, Auto Weave)</span>
+          <span class="badge-brass">Physical Textile Parameters</span>
+        </div>
+      </div>
+
+      <h3>Understanding the Import Sliders</h3>
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Setting</th>
+            <th>Default</th>
+            <th>What It Controls</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Target Hoop Width</strong></td>
+            <td><span class="mono-tag">75 mm</span></td>
+            <td><strong>The physical scale in millimeters.</strong> Images are pixel-based; embroidery machines require millimeters. This defines the final real-world width and scales height proportionally.</td>
+          </tr>
+          <tr>
+            <td><strong>Thread Colors (K)</strong></td>
+            <td><span class="mono-tag">3 colors</span></td>
+            <td>Number of distinct physical embroidery thread spools. Clusters millions of raster pixels into $K$ dominant masks in CIELAB space, eliminating noisy gradient transitions.</td>
+          </tr>
+          <tr>
+            <td><strong>Detail Smoothing (RDP)</strong></td>
+            <td><span class="mono-tag">0.8 mm</span></td>
+            <td>Ramer-Douglas-Peucker tolerance. Converts jagged pixel staircase edges into smooth machine vector splines, eliminating needle-damaging micro-stitches ($<0.35\text{mm}$).</td>
+          </tr>
+          <tr>
+            <td><strong>Grain Flow Angle</strong></td>
+            <td><span class="mono-tag">45°</span></td>
+            <td>Scanline grain orientation. Embroidery threads reflect light directionally; setting a unified 45° angle ensures consistent luster and prevents fabric seam clashing.</td>
+          </tr>
+          <tr>
+            <td><strong>Default Stitch Weave</strong></td>
+            <td><span class="mono-tag">Twill Weave</span></td>
+            <td>The weave structure applied to filled regions. Twill uses a 4-step staggered offset for maximum richness.</td>
+          </tr>
+          <tr>
+            <td><strong>Filtering Checkboxes</strong></td>
+            <td><span class="mono-tag">All Checked</span></td>
+            <td>Automatically ignores pure white JPEG canvas backgrounds (>245), strips transparent PNG alpha, and suppresses outer die-cut white sticker margins.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>The 6mm Rule:</strong> Narrow elements between 1.0mm and 6.0mm automatically receive high-sheen dual-rail <strong>Satin Stitches</strong>. Elements wider than 6.0mm automatically receive <strong>Tatami / Twill Fills</strong> with 3.5mm needle drops to prevent long, snag-prone thread floats.
+      </div>
+    </section>
+
+    <section id="typography">
+      <h2>4. Typography & Satin Lettering Engine</h2>
+      <p>Clicking <strong>[Add Lettering]</strong> opens the in-canvas typography modal for generating collegiate block, serif, and scripted lettering.</p>
+
+      <div class="screenshot-card">
+        <img src="/docs/images/lettering_modal.png" alt="Typography & Lettering Engine Modal">
+        <div class="screenshot-caption">
+          <span>Figure 4: Typography Modal with Font Selection, Baseline Height, and Polar Arc Warping</span>
+          <span class="badge-brass">Arc Warping Engine</span>
+        </div>
+      </div>
+
+      <p>Key Lettering Features:</p>
+      <ul style="margin-left: 20px; margin-bottom: 20px; color: #ccc;">
+        <li><strong>Arc Curve Slider (-60° to +60°):</strong> Bends text along a smooth mathematical polar arch before stitch generation, ensuring needle drops remain perpendicular to the curve.</li>
+        <li><strong>Automatic Hole Punching:</strong> Automatically extracts inner cutout loops in letters like <code>A</code>, <code>B</code>, <code>O</code>, <code>D</code>, and <code>P</code>, preventing stitches from traversing through negative space.</li>
+        <li><strong>Minimum Height Guideline:</strong> Standard 40wt thread is 0.4mm thick. For clean, legible satin lettering, keep letter height at $\ge 12\text{mm}$.</li>
+      </ul>
+    </section>
+
+    <section id="stitches">
+      <h2>5. Weave Types & Physical Parameters</h2>
+      <p>Fine-tune machine stitch compilation in the right sidebar:</p>
+      
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Recommended</th>
+            <th>Description & Adjustment Guidelines</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Stitch Density (Row Pitch)</strong></td>
+            <td><span class="mono-tag">0.40 mm</span></td>
+            <td>Distance between parallel thread scanlines. Decrease to <code>0.35mm</code> for coarse fabrics (piqué polo, knit sweaters) to prevent fabric peek-through. Increase to <code>0.45mm</code> for lightweight silk or sheer fabrics.</td>
+          </tr>
+          <tr>
+            <td><strong>Stitch Step Length</strong></td>
+            <td><span class="mono-tag">3.5 mm</span></td>
+            <td>Distance between consecutive needle drops along a scanline. Decrease to <code>2.8mm</code> for intricate curves; increase to <code>4.5mm</code> for fast flat fills.</td>
+          </tr>
+          <tr>
+            <td><strong>Stitch Angle</strong></td>
+            <td><span class="mono-tag">0° – 360°</span></td>
+            <td>Rotates the grain flow of the active thread layer.</td>
+          </tr>
+          <tr>
+            <td><strong>Pull Compensation</strong></td>
+            <td><span class="mono-tag">+0.30 mm</span></td>
+            <td><strong>Outward boundary expansion.</strong> Thread tension shrinks fabric along the stitch line. Pull comp widens boundaries to guarantee perfect registration against neighboring outlines. Use <code>+0.5mm</code> on stretchy t-shirt knits.</td>
+          </tr>
+          <tr>
+            <td><strong>Generate Underlay</strong></td>
+            <td><span class="mono-tag">Checked</span></td>
+            <td>Lays a preliminary foundation lattice that tacks fabric to backing stabilizer and flattens fabric pile before top stitching.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="simulation">
+      <h2>6. CAD Reticle & DAW Simulation Deck</h2>
+      <p>Simulate how your embroidery machine will sew every single stitch before sending files to production:</p>
+      <ul style="margin-left: 20px; margin-bottom: 20px; color: #ccc;">
+        <li><strong>Color-Blocked Timeline Track:</strong> Each colored bar is proportional to that thread layer's stitch count. Click any bar to jump playback directly to that layer.</li>
+        <li><strong>CAD Virtual Needle Reticle:</strong> High-visibility brass reticle tracking the needle drop, displaying active command and distance (e.g. <code>STITCH 2.4mm</code>, <code>JUMP 8.2mm</code>, <code>TRIM</code>, <code>COLOR STOP</code>).</li>
+        <li><strong>Hoop Envelope Alerts:</strong> If your design exceeds the active commercial hoop's 5mm safety margin, a red <code>⚠ +X mm</code> alert pill appears instantly.</li>
+      </ul>
+    </section>
+
+    <section id="exporters">
+      <h2>7. Exporters & Machine Formats</h2>
+      
+      <div class="screenshot-card">
+        <img src="/docs/images/export_dropdown.png" alt="Export Embroidery Formats Dropdown">
+        <div class="screenshot-caption">
+          <span>Figure 5: Export Dropdown with Universal Commercial & Home Embroidery Formats</span>
+          <span class="badge-brass">Production Ready</span>
+        </div>
+      </div>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Format</th>
+            <th>File Extension</th>
+            <th>Compatible Machine Fleets</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Tajima DST</strong></td>
+            <td><span class="mono-tag">.DST</span></td>
+            <td>Tajima, Barudan, SWF, Melco, Ricoma, Happy, Brother (Commercial). Encodes hardware 3-jump trims and tie-off locks.</td>
+          </tr>
+          <tr>
+            <td><strong>Brother PES</strong></td>
+            <td><span class="mono-tag">.PES</span></td>
+            <td>Brother, Baby Lock, Bernina. Preserves full thread palette colors with embedded <code>#PEC0001</code> blocks.</td>
+          </tr>
+          <tr>
+            <td><strong>Janome JEF</strong></td>
+            <td><span class="mono-tag">.JEF</span></td>
+            <td>Janome, Elna, Kenmore. Automatically selects appropriate standard hoop (50×50 to 200×200mm).</td>
+          </tr>
+          <tr>
+            <td><strong>Melco EXP</strong></td>
+            <td><span class="mono-tag">.EXP</span></td>
+            <td>Melco commercial embroidery machines and high-speed multi-head systems.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="shortcuts">
+      <h2>8. Complete Keyboard Shortcuts Matrix</h2>
+      <table class="spec-table">
+        <thead>
+          <tr><th>Action</th><th>Key Shortcut</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Inspect / Pan Mode</td><td><span class="mono-tag">V</span> or <span class="mono-tag">Space + Drag</span></td><td>Move around canvas</td></tr>
+          <tr><td>Split Knife Tool</td><td><span class="mono-tag">K</span></td><td>Slice polygons for satin rails</td></tr>
+          <tr><td>Toggle 10mm CAD Grid</td><td><span class="mono-tag">G</span></td><td>Metric alignment grid</td></tr>
+          <tr><td>Toggle Spotlight Vignette</td><td><span class="mono-tag">B</span></td><td>Origin-tracked ambient lighting</td></tr>
+          <tr><td>Cycle Machine Hoops</td><td><span class="mono-tag">H</span></td><td>100×100, 130×180, 200×200, 360×200mm</td></tr>
+          <tr><td>Fit Design to Viewport</td><td><span class="mono-tag">F</span></td><td>Auto zoom to fit design</td></tr>
+          <tr><td>Reset Zoom</td><td><span class="mono-tag">0</span></td><td>Reset zoom to 100%</td></tr>
+          <tr><td>Play / Pause Simulation</td><td><span class="mono-tag">P</span> or <span class="mono-tag">Space</span></td><td>DAW transport toggle</td></tr>
+          <tr><td>Step -10 / +10 Stitches</td><td><span class="mono-tag">[</span> / <span class="mono-tag">]</span></td><td>Frame scrubbing</td></tr>
+          <tr><td>Jump to Start / End</td><td><span class="mono-tag">\</span> / <span class="mono-tag">End</span></td><td>Seek to first/last stitch</td></tr>
+          <tr><td>Toggle Simulation Loop</td><td><span class="mono-tag">L</span></td><td>Continuous repeat playback</td></tr>
+          <tr><td>Undo / Redo</td><td><span class="mono-tag">Cmd+Z</span> / <span class="mono-tag">Cmd+Shift+Z</span></td><td>Full history traversal</td></tr>
+          <tr><td>Open User Guide</td><td><span class="mono-tag">?</span> or <span class="mono-tag">F1</span></td><td>Open in-app help modal</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="faq">
+      <h2>9. Troubleshooting & FAQ</h2>
+      
+      <h3>Why did my stitches pull in and leave gaps around outlines?</h3>
+      <p>This is standard fabric pull distortion. Thread tension physically pulls fabric inward. In the right sidebar, increase <strong>Pull Compensation</strong> to <code>+0.4mm</code> or <code>+0.5mm</code>, and verify that <strong>Generate Underlay</strong> is checked.</p>
+
+      <h3>Why is the machine stopping multiple times for the same color?</h3>
+      <p>In standard digitizing, fragmented islands cause extra stops. EmbroideryTrace Studio automatically groups all disconnected patches of the same color into a single <code>ColorLayer</code> channel, eliminating redundant stops.</p>
+
+      <h3>What is the difference between Twill and Tatami?</h3>
+      <p>Both are dense structural fills. Tatami uses a standard 1/3-offset brick pattern. Twill uses a 1/4-staggered offset that produces a pronounced diagonal texture mimicking woven denim and military twills.</p>
+    </section>
+
+  </main>
+
+  <script>
+    function filterSections(query) {
+      const q = query.toLowerCase().trim();
+      const sections = document.querySelectorAll('main section');
+      sections.forEach(sec => {
+        if (!q) {
+          sec.style.display = 'block';
+          return;
+        }
+        const text = sec.textContent.toLowerCase();
+        sec.style.display = text.includes(q) ? 'block' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
