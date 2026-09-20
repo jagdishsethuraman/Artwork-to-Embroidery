@@ -4,6 +4,22 @@ All notable changes to the Artwork-to-Embroidery Engine are documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-09-20
+
+### Added
+- **Commercial Machine Embroidery Hoop CAD System (`public/app.js` & `public/index.html`):**
+  - Selectable physical machine hoop boundaries centered at origin: `100×100mm` (4×4" Standard single-needle), `130×180mm` (5×7" Large garment/chest), `200×200mm` (8×8" Commercial multi-needle), `360×200mm` (14×8" Jacket back/jumbo tubular), and `None / Free Canvas`.
+  - Realistic CAD hoop rendering: outer plastic clamp double rim, physical alignment notches/ticks at 4 cardinal positions, dashed inner 5mm safety clearance margin, and millimeter dimension tags.
+  - Real-time CAD compliance and boundary alert engine: calculates design bounding box against active hoop clearance. Displays warning banner (`⚠ Design exceeds hoop boundary by +X mm`), pulses hoop boundary in crimson (`#f43f5e`), and updates status badge.
+- **Precision Viewport Zoom HUD & Segmented CAD Deck (`public/app.js` & `public/index.html`):**
+  - Floating segmented control in top canvas HUD with interactive zoom presets (25%, 50%, 75%, 100%, 150%, 200%, 400%, Fit Design, Fit Hoop).
+  - 10mm primary metric CAD grid with 1mm minor subdivision grid lines at high zoom levels (scale >= 8.0).
+  - Floating real-time telemetry deck: continuous cursor coordinates (`X: +0.0 Y: +0.0 mm`), live design dimensions (`W × H mm`), and hoop compliance chip (`✓ 100×100` or `⚠ +Xmm`).
+  - Keyboard shortcuts: `+`/`=` (Zoom In), `-`/`_` (Zoom Out), `0` (Reset 100%), `F` (Fit Design), `G` (Toggle Grid), `H` (Cycle Hoops), `V` (Inspect), `K` (Knife), `Space + Drag` (Canvas Pan).
+- **Responsive Dynamic Moldable Panels:**
+  - Auto-collapsing top HUD into compact icon pills on viewports `<= 1320px`.
+  - Stacked bottom layout on viewports `<= 1240px` (Telemetry positioned above playback bar), completely eliminating overlap or out-of-scope clipping.
+
 ## [1.7.0] - 2026-09-20
 
 ### Added

@@ -139,11 +139,24 @@ function updateUndoRedoUI() {
 }
 
 // Viewport Transform (Pan & Zoom)
-let scale = 5.0; // pixels per mm (default zoom)
+let scale = 5.0; // pixels per mm (default zoom, 5.0 = 100%)
 let panX = 400;
 let panY = 300;
 let isPanning = false;
+let isSpacePressed = false;
 let lastMousePos = { x: 0, y: 0 };
+let currentMouseWorld = new Point2D(0, 0);
+
+// Commercial Machine Hoop Specifications (Physical CAD Envelopes)
+const HOOP_PRESETS = {
+  '100x100': { key: '100x100', width: 100, height: 100, radius: 14, label: '100 × 100 mm', sub: '4×4" Standard', clearance: 5 },
+  '130x180': { key: '130x180', width: 130, height: 180, radius: 20, label: '130 × 180 mm', sub: '5×7" Large', clearance: 5 },
+  '200x200': { key: '200x200', width: 200, height: 200, radius: 24, label: '200 × 200 mm', sub: '8×8" Commercial', clearance: 6 },
+  '360x200': { key: '360x200', width: 360, height: 200, radius: 28, label: '360 × 200 mm', sub: '14×8" Jacket Back', clearance: 8 },
+  'none': { key: 'none', width: 0, height: 0, radius: 0, label: 'Free Canvas', sub: 'No Limits', clearance: 0 }
+};
+let activeHoopKey = '100x100';
+let showGrid = true;
 
 // Canvas Elements
 const canvas = document.getElementById('stitchCanvas');
@@ -546,7 +559,7 @@ function resetPlayhead() {
 }
 
 // -------------------------------------------------------------
-// Canvas Rendering Engine (Realistic Thread Simulation)
+// Canvas Rendering Engine (Realistic Thread Simulation & Machine Hoops)
 // -------------------------------------------------------------
 function render() {
   ctx.save();
@@ -556,12 +569,18 @@ function render() {
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw millimeter grid
+  // Draw millimeter grid (10mm major / 1mm minor)
   drawMillimeterGrid();
 
   // Apply Viewport Pan & Zoom
   ctx.translate(panX, panY);
   ctx.scale(scale, scale);
+
+  // Check hoop boundary limit & update live telemetry
+  const isExceedingHoop = updateViewportTelemetry(currentMouseWorld);
+
+  // Draw Machine Embroidery Hoop (in world space)
+  drawHoop(ctx, HOOP_PRESETS[activeHoopKey], isExceedingHoop);
 
   // Compile Stitches
   const stitches = engine.compileStitches();
@@ -679,33 +698,234 @@ function render() {
   ctx.restore();
 }
 
-function drawMillimeterGrid() {
+function drawHoop(ctx, hoop, isExceeding) {
+  if (!hoop || hoop.key === 'none') return;
+
+  const w = hoop.width;
+  const h = hoop.height;
+  const r = hoop.radius;
+  const c = hoop.clearance;
+
   ctx.save();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-  ctx.lineWidth = 1;
 
-  const step = 10 * scale; // 10mm grid lines
-  const offsetX = panX % step;
-  const offsetY = panY % step;
+  function roundedRect(x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
 
-  ctx.beginPath();
-  for (let x = offsetX; x < canvas.width; x += step) {
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
-  }
-  for (let y = offsetY; y < canvas.height; y += step) {
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
-  }
+  // 1. Outer Hoop Clamp / Plastic Ring (Double Rim)
+  roundedRect(-w / 2 - 3.5, -h / 2 - 3.5, w + 7, h + 7, r + 3);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+  ctx.lineWidth = Math.max(0.2, 1.2 / scale);
   ctx.stroke();
 
+  // 2. Physical Hoop Frame Inner Edge
+  roundedRect(-w / 2, -h / 2, w, h, r);
+  ctx.strokeStyle = isExceeding ? 'rgba(244, 63, 94, 0.75)' : 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth = Math.max(0.18, 0.7 / scale);
+  ctx.stroke();
+
+  // 3. Inner Sewing Safety Envelope (inset by clearance)
+  roundedRect(-w / 2 + c, -h / 2 + c, w - 2 * c, h - 2 * c, Math.max(2, r - 3));
+  ctx.setLineDash([Math.max(0.6, 3 / scale), Math.max(0.6, 3 / scale)]);
+  ctx.strokeStyle = isExceeding ? 'rgba(244, 63, 94, 0.55)' : 'rgba(56, 189, 248, 0.22)';
+  ctx.lineWidth = Math.max(0.12, 0.4 / scale);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 4. Physical Alignment Notches / Center Bracket Ticks
+  ctx.strokeStyle = isExceeding ? 'rgba(244, 63, 94, 0.6)' : 'rgba(255, 255, 255, 0.25)';
+  ctx.lineWidth = Math.max(0.15, 0.5 / scale);
+  const tick = Math.max(2, 6 / scale);
+  // Top notch
+  ctx.beginPath();
+  ctx.moveTo(0, -h / 2 - 1);
+  ctx.lineTo(0, -h / 2 + tick);
+  ctx.stroke();
+  // Bottom notch
+  ctx.beginPath();
+  ctx.moveTo(0, h / 2 + 1);
+  ctx.lineTo(0, h / 2 - tick);
+  ctx.stroke();
+  // Left notch
+  ctx.beginPath();
+  ctx.moveTo(-w / 2 - 1, 0);
+  ctx.lineTo(-w / 2 + tick, 0);
+  ctx.stroke();
+  // Right notch
+  ctx.beginPath();
+  ctx.moveTo(w / 2 + 1, 0);
+  ctx.lineTo(w / 2 - tick, 0);
+  ctx.stroke();
+
+  // 5. Dimension & Machine Spec Label on Top Rim
+  ctx.fillStyle = isExceeding ? 'rgba(253, 164, 175, 0.9)' : 'rgba(255, 255, 255, 0.35)';
+  const fontSize = Math.max(1.8, 12 / scale);
+  ctx.font = `${fontSize}px "JetBrains Mono", monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(`${hoop.label} — ${hoop.sub}`, 0, -h / 2 - (4 / scale));
+
+  ctx.restore();
+}
+
+function updateViewportTelemetry(worldCursor) {
+  const stitches = engine.compileStitches();
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const s of stitches) {
+    if (s.x < minX) minX = s.x;
+    if (s.x > maxX) maxX = s.x;
+    if (s.y < minY) minY = s.y;
+    if (s.y > maxY) maxY = s.y;
+  }
+
+  const hasStitches = stitches.length > 1 && isFinite(minX);
+  const designW = hasStitches ? (maxX - minX) : 0;
+  const designH = hasStitches ? (maxY - minY) : 0;
+
+  // Update Cursor Coordinates
+  const coordsEl = document.getElementById('coordsDisplay');
+  if (coordsEl && worldCursor) {
+    coordsEl.textContent = `X: ${worldCursor.x >= 0 ? '+' : ''}${worldCursor.x.toFixed(1)} Y: ${worldCursor.y >= 0 ? '+' : ''}${worldCursor.y.toFixed(1)} mm`;
+  }
+
+  // Update Design Dimensions
+  const dimEl = document.getElementById('designDimDisplay');
+  if (dimEl) {
+    dimEl.textContent = `${designW.toFixed(1)} × ${designH.toFixed(1)} mm`;
+  }
+
+  // Update Zoom readout
+  const zoomEl = document.getElementById('zoomValLabel');
+  if (zoomEl) {
+    zoomEl.textContent = `${Math.round((scale / 5.0) * 100)}%`;
+  }
+
+  // Check Hoop Boundary Envelope
+  const hoop = HOOP_PRESETS[activeHoopKey];
+  const statusBadge = document.getElementById('hoopStatusDisplay');
+  const alertChip = document.getElementById('hoopAlertChip');
+  const alertText = document.getElementById('hoopAlertText');
+
+  let isExceeding = false;
+  let overflow = 0;
+
+  if (hoop && hoop.key !== 'none' && hasStitches) {
+    const halfW = hoop.width / 2;
+    const halfH = hoop.height / 2;
+    const safeW = halfW - hoop.clearance;
+    const safeH = halfH - hoop.clearance;
+
+    const overX = Math.max(0, -safeW - minX, maxX - safeW);
+    const overY = Math.max(0, -safeH - minY, maxY - safeH);
+    overflow = Math.max(overX, overY);
+
+    if (overflow > 0.05) {
+      isExceeding = true;
+    }
+  }
+
+  if (statusBadge) {
+    if (!hoop || hoop.key === 'none') {
+      statusBadge.className = 'badge';
+      statusBadge.style.background = 'rgba(255,255,255,0.08)';
+      statusBadge.style.color = '#94a3b8';
+      statusBadge.style.borderColor = 'rgba(255,255,255,0.12)';
+      statusBadge.textContent = 'Free Canvas';
+    } else if (isExceeding) {
+      statusBadge.className = 'badge';
+      statusBadge.style.background = 'rgba(244,63,94,0.15)';
+      statusBadge.style.color = '#f43f5e';
+      statusBadge.style.borderColor = 'rgba(244,63,94,0.35)';
+      statusBadge.textContent = `⚠ +${overflow.toFixed(1)}mm`;
+    } else {
+      statusBadge.className = 'badge';
+      statusBadge.style.background = 'rgba(16,185,129,0.15)';
+      statusBadge.style.color = '#10b981';
+      statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
+      statusBadge.textContent = `✓ ${hoop.key}`;
+    }
+  }
+
+  if (alertChip && alertText) {
+    if (isExceeding) {
+      alertText.textContent = `Warning: Design (${designW.toFixed(1)}×${designH.toFixed(1)}mm) exceeds ${hoop.label} boundary (+${overflow.toFixed(1)}mm)`;
+      alertChip.style.display = 'flex';
+    } else {
+      alertChip.style.display = 'none';
+    }
+  }
+
+  return isExceeding;
+}
+
+function drawMillimeterGrid() {
+  ctx.save();
+
+  if (showGrid) {
+    // 10mm Major Grid Lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.lineWidth = 1;
+
+    const step10 = 10 * scale;
+    const offsetX10 = panX % step10;
+    const offsetY10 = panY % step10;
+
+    ctx.beginPath();
+    for (let x = offsetX10; x < canvas.width; x += step10) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+    }
+    for (let y = offsetY10; y < canvas.height; y += step10) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+    }
+    ctx.stroke();
+
+    // 1mm Minor Grid Lines when zoomed in (scale >= 8.0)
+    if (scale >= 8.0) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
+      ctx.lineWidth = 0.5;
+      const step1 = 1 * scale;
+      const offsetX1 = panX % step1;
+      const offsetY1 = panY % step1;
+
+      ctx.beginPath();
+      for (let x = offsetX1; x < canvas.width; x += step1) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+      }
+      for (let y = offsetY1; y < canvas.height; y += step1) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+      }
+      ctx.stroke();
+    }
+  }
+
   // Origin Crosshair
-  ctx.strokeStyle = 'rgba(14, 165, 233, 0.3)';
+  ctx.strokeStyle = 'rgba(14, 165, 233, 0.35)';
+  ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(panX - 20, panY);
   ctx.lineTo(panX + 20, panY);
   ctx.moveTo(panX, panY - 20);
   ctx.lineTo(panX, panY + 20);
+  ctx.stroke();
+
+  // Center Needle Origin Ring
+  ctx.beginPath();
+  ctx.arc(panX, panY, 3, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(14, 165, 233, 0.5)';
   ctx.stroke();
 
   ctx.restore();
@@ -723,12 +943,13 @@ canvas.addEventListener('mousedown', (e) => {
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
 
-  if (currentTool === 'split') {
+  if (currentTool === 'split' && !isSpacePressed) {
     knifeStart = screenToWorld(mx, my);
     knifeEnd = knifeStart.clone();
   } else {
     isPanning = true;
     lastMousePos = { x: e.clientX, y: e.clientY };
+    canvas.style.cursor = 'grabbing';
   }
 });
 
@@ -737,7 +958,15 @@ window.addEventListener('mousemove', (e) => {
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
 
-  if (currentTool === 'split' && knifeStart) {
+  if (mx >= 0 && mx <= canvas.width && my >= 0 && my <= canvas.height) {
+    currentMouseWorld = screenToWorld(mx, my);
+    const coordsEl = document.getElementById('coordsDisplay');
+    if (coordsEl) {
+      coordsEl.textContent = `X: ${currentMouseWorld.x >= 0 ? '+' : ''}${currentMouseWorld.x.toFixed(1)} Y: ${currentMouseWorld.y >= 0 ? '+' : ''}${currentMouseWorld.y.toFixed(1)} mm`;
+    }
+  }
+
+  if (currentTool === 'split' && knifeStart && !isSpacePressed) {
     knifeEnd = screenToWorld(mx, my);
     render();
   } else if (isPanning) {
@@ -751,7 +980,7 @@ window.addEventListener('mousemove', (e) => {
 });
 
 window.addEventListener('mouseup', () => {
-  if (currentTool === 'split' && knifeStart && knifeEnd) {
+  if (currentTool === 'split' && knifeStart && knifeEnd && !isSpacePressed) {
     if (knifeStart.distance(knifeEnd) > 2) {
       applyKnifeSplit(knifeStart, knifeEnd);
     }
@@ -760,6 +989,7 @@ window.addEventListener('mouseup', () => {
     render();
   }
   isPanning = false;
+  canvas.style.cursor = isSpacePressed ? 'grab' : (currentTool === 'split' ? 'crosshair' : 'default');
 });
 
 canvas.addEventListener('wheel', (e) => {
@@ -1633,6 +1863,9 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (diagnosticsModal && diagnosticsModal.style.display === 'flex') closeDiagnosticsModal();
     if (importModal && importModal.style.display === 'flex') closeImportModal();
+    closeExportDropdown();
+    closeHoopDropdown();
+    closeZoomDropdown();
   }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
     e.preventDefault();
@@ -1645,7 +1878,141 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
     redo();
   }
+
+  // Viewport hotkeys (when not in input/textarea/select)
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+    return;
+  }
+
+  if (e.code === 'Space' && !isSpacePressed) {
+    isSpacePressed = true;
+    canvas.style.cursor = 'grab';
+    e.preventDefault();
+  } else if (e.key === '+' || e.key === '=') {
+    e.preventDefault();
+    zoomByFactor(1.25, canvas.width / 2, canvas.height / 2);
+  } else if (e.key === '-' || e.key === '_') {
+    e.preventDefault();
+    zoomByFactor(0.8, canvas.width / 2, canvas.height / 2);
+  } else if (e.key === '0') {
+    e.preventDefault();
+    setZoomLevel(100);
+  } else if (e.key.toLowerCase() === 'f') {
+    e.preventDefault();
+    fitToScreen();
+  } else if (e.key.toLowerCase() === 'g') {
+    e.preventDefault();
+    toggleGrid();
+  } else if (e.key.toLowerCase() === 'h') {
+    e.preventDefault();
+    cycleHoop();
+  } else if (e.key.toLowerCase() === 'v') {
+    e.preventDefault();
+    setTool('select');
+  } else if (e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    setTool('split');
+  }
 });
+
+window.addEventListener('keyup', (e) => {
+  if (e.code === 'Space') {
+    isSpacePressed = false;
+    canvas.style.cursor = currentTool === 'split' ? 'crosshair' : 'default';
+  }
+});
+
+// Tool Switching Helper
+function setTool(toolName) {
+  currentTool = toolName;
+  const toolSelect = document.getElementById('toolSelect');
+  const toolSplit = document.getElementById('toolSplit');
+  if (toolName === 'select') {
+    if (toolSelect) toolSelect.classList.add('active');
+    if (toolSplit) toolSplit.classList.remove('active');
+    canvas.style.cursor = isSpacePressed ? 'grab' : 'default';
+  } else if (toolName === 'split') {
+    if (toolSplit) toolSplit.classList.add('active');
+    if (toolSelect) toolSelect.classList.remove('active');
+    canvas.style.cursor = isSpacePressed ? 'grab' : 'crosshair';
+  }
+}
+
+// Zoom & Viewport Helper Functions
+function zoomByFactor(factor, cx, cy) {
+  const worldCenter = screenToWorld(cx, cy);
+  scale = Math.max(1.0, Math.min(40.0, scale * factor));
+  panX = cx - worldCenter.x * scale;
+  panY = cy - worldCenter.y * scale;
+  render();
+}
+
+function setZoomLevel(percentage) {
+  const targetScale = (percentage / 100) * 5.0;
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const worldCenter = screenToWorld(cx, cy);
+  scale = Math.max(1.0, Math.min(40.0, targetScale));
+  panX = cx - worldCenter.x * scale;
+  panY = cy - worldCenter.y * scale;
+  render();
+}
+
+function fitToHoop() {
+  const hoop = HOOP_PRESETS[activeHoopKey];
+  if (!hoop || hoop.key === 'none') {
+    fitToScreen();
+    return;
+  }
+  const pad = 90;
+  const availW = Math.max(100, canvas.width - pad);
+  const availH = Math.max(100, canvas.height - pad);
+  scale = Math.max(1.0, Math.min(30.0, Math.min(availW / (hoop.width + 10), availH / (hoop.height + 10))));
+  panX = canvas.width / 2;
+  panY = canvas.height / 2;
+  render();
+}
+
+function toggleGrid() {
+  showGrid = !showGrid;
+  const btn = document.getElementById('btnToggleGrid');
+  if (btn) {
+    if (showGrid) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+  render();
+}
+
+function cycleHoop() {
+  const keys = Object.keys(HOOP_PRESETS);
+  const currIdx = keys.indexOf(activeHoopKey);
+  const nextKey = keys[(currIdx + 1) % keys.length];
+  setHoop(nextKey);
+}
+
+function setHoop(hoopKey) {
+  if (!HOOP_PRESETS[hoopKey]) return;
+  activeHoopKey = hoopKey;
+  const hoop = HOOP_PRESETS[hoopKey];
+
+  const labelEl = document.getElementById('hoopBtnLabel');
+  if (labelEl) {
+    labelEl.textContent = hoop.key === 'none' ? 'Free Canvas' : `${hoop.key}mm`;
+  }
+
+  const menu = document.getElementById('hoopDropdownMenu');
+  if (menu) {
+    menu.querySelectorAll('.hud-menu-item').forEach(btn => {
+      if (btn.getAttribute('data-hoop') === hoopKey) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  render();
+}
 
 // UI Event Handlers
 document.getElementById('presetDaisy').onclick = () => { pushState(); loadPreset('daisy'); fitToScreen(); };
@@ -1656,16 +2023,18 @@ if (document.getElementById('presetCrest')) {
 document.getElementById('btnFitScreen').onclick = fitToScreen;
 document.getElementById('btnResetPreset').onclick = () => { pushState(); loadPreset(activePreset); fitToScreen(); };
 
-document.getElementById('toolSelect').onclick = (e) => {
-  currentTool = 'select';
-  document.getElementById('toolSelect').classList.add('active');
-  document.getElementById('toolSplit').classList.remove('active');
-};
-document.getElementById('toolSplit').onclick = (e) => {
-  currentTool = 'split';
-  document.getElementById('toolSplit').classList.add('active');
-  document.getElementById('toolSelect').classList.remove('active');
-};
+document.getElementById('toolSelect').onclick = () => setTool('select');
+document.getElementById('toolSplit').onclick = () => setTool('split');
+
+// Zoom & Grid Tool Buttons
+const btnZoomIn = document.getElementById('btnZoomIn');
+if (btnZoomIn) btnZoomIn.onclick = () => zoomByFactor(1.25, canvas.width / 2, canvas.height / 2);
+
+const btnZoomOut = document.getElementById('btnZoomOut');
+if (btnZoomOut) btnZoomOut.onclick = () => zoomByFactor(0.8, canvas.width / 2, canvas.height / 2);
+
+const btnToggleGrid = document.getElementById('btnToggleGrid');
+if (btnToggleGrid) btnToggleGrid.onclick = toggleGrid;
 
 function triggerRegeneration() {
   updateLayersUI();
@@ -1778,32 +2147,98 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-// Export Dropdown Controls
+// Dropdown Menu Toggles & Unified Outside-Click Handling
 const btnExportDropdownToggle = document.getElementById('btnExportDropdownToggle');
 const exportDropdownMenu = document.getElementById('exportDropdownMenu');
 const exportChevron = document.getElementById('exportChevron');
+
+const btnHoopDropdownToggle = document.getElementById('btnHoopDropdownToggle');
+const hoopDropdownMenu = document.getElementById('hoopDropdownMenu');
+
+const btnZoomLevel = document.getElementById('btnZoomLevel');
+const zoomDropdownMenu = document.getElementById('zoomDropdownMenu');
 
 function closeExportDropdown() {
   if (exportDropdownMenu) exportDropdownMenu.style.display = 'none';
   if (exportChevron) exportChevron.style.transform = 'rotate(0deg)';
 }
 
+function closeHoopDropdown() {
+  if (hoopDropdownMenu) hoopDropdownMenu.style.display = 'none';
+}
+
+function closeZoomDropdown() {
+  if (zoomDropdownMenu) zoomDropdownMenu.style.display = 'none';
+}
+
 if (btnExportDropdownToggle && exportDropdownMenu) {
   btnExportDropdownToggle.onclick = (e) => {
     e.stopPropagation();
     const isOpen = exportDropdownMenu.style.display === 'block';
+    closeHoopDropdown();
+    closeZoomDropdown();
     exportDropdownMenu.style.display = isOpen ? 'none' : 'block';
     if (exportChevron) {
       exportChevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
     }
   };
+}
 
-  document.addEventListener('click', (e) => {
-    if (!exportDropdownMenu.contains(e.target) && e.target !== btnExportDropdownToggle) {
-      closeExportDropdown();
-    }
+if (btnHoopDropdownToggle && hoopDropdownMenu) {
+  btnHoopDropdownToggle.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = hoopDropdownMenu.style.display === 'block';
+    closeExportDropdown();
+    closeZoomDropdown();
+    hoopDropdownMenu.style.display = isOpen ? 'none' : 'block';
+  };
+
+  hoopDropdownMenu.querySelectorAll('.hud-menu-item').forEach(item => {
+    item.onclick = (e) => {
+      e.stopPropagation();
+      const hoopKey = item.getAttribute('data-hoop');
+      if (hoopKey) setHoop(hoopKey);
+      closeHoopDropdown();
+    };
   });
 }
+
+if (btnZoomLevel && zoomDropdownMenu) {
+  btnZoomLevel.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = zoomDropdownMenu.style.display === 'block';
+    closeExportDropdown();
+    closeHoopDropdown();
+    zoomDropdownMenu.style.display = isOpen ? 'none' : 'block';
+  };
+
+  zoomDropdownMenu.querySelectorAll('.hud-menu-item').forEach(item => {
+    item.onclick = (e) => {
+      e.stopPropagation();
+      const val = item.getAttribute('data-zoom');
+      if (val === 'fit') {
+        fitToScreen();
+      } else if (val === 'fit-hoop') {
+        fitToHoop();
+      } else if (val) {
+        setZoomLevel(parseInt(val, 10));
+      }
+      closeZoomDropdown();
+    };
+  });
+}
+
+document.addEventListener('click', (e) => {
+  if (exportDropdownMenu && !exportDropdownMenu.contains(e.target) && e.target !== btnExportDropdownToggle) {
+    closeExportDropdown();
+  }
+  if (hoopDropdownMenu && !hoopDropdownMenu.contains(e.target) && e.target !== btnHoopDropdownToggle) {
+    closeHoopDropdown();
+  }
+  if (zoomDropdownMenu && !zoomDropdownMenu.contains(e.target) && e.target !== btnZoomLevel) {
+    closeZoomDropdown();
+  }
+});
 
 document.getElementById('exportDstBtn').onclick = () => {
   closeExportDropdown();
