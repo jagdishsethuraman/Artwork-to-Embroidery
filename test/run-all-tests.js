@@ -474,6 +474,36 @@ for (let i = 1; i < uStitches.length; i++) {
 assert(uBayJumps <= 1, `Monotonic branch partitioning reduced cross-bay jumps to <= 1 (got ${uBayJumps})`);
 assert(uStitches.length > 200, `U-shape tatami fill generated comprehensive stitches (got ${uStitches.length})`);
 
+// I. 5-Pointed Star Solid Fill & Interior Underlay Travel
+const starPoints = [];
+const starCx = 50, starCy = 50, starROuter = 30, starRInner = 12;
+for (let i = 0; i < 10; i++) {
+  const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+  const r = i % 2 === 0 ? starROuter : starRInner;
+  starPoints.push(new Point2D(starCx + r * Math.cos(angle), starCy + r * Math.sin(angle)));
+}
+const starPoly = new Polygon(starPoints);
+const starStitches = generateTatamiFill(starPoly, {
+  density: 0.4,
+  stitchLength: 3.5,
+  angle: 45,
+  underlay: true
+});
+
+let starJumps = 0;
+let starLongJumps = 0;
+for (let i = 1; i < starStitches.length; i++) {
+  if (starStitches[i].command === StitchCommand.JUMP) {
+    starJumps++;
+    if (starStitches[i].distance(starStitches[i - 1]) > 5.0) {
+      starLongJumps++;
+    }
+  }
+}
+assert(starStitches.length > 800, `Star tatami fill generated full coverage stitches (got ${starStitches.length})`);
+assert(starJumps <= 1, `Star tatami fill eliminated cross-tip air jumps (got ${starJumps} jumps)`);
+assert(starLongJumps === 0, `Star tatami fill eliminated all long travels > 5.0mm (got ${starLongJumps})`);
+
 // -------------------------------------------------------------
 // 7. MULTI-POLYGON COLOR CHANNELS, HARMONIOUS GRAIN & CLEAN DST
 // -------------------------------------------------------------

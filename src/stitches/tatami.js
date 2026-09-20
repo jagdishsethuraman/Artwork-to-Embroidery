@@ -11,6 +11,19 @@ function segmentsOverlap(s1, s2) {
 }
 
 /**
+ * Checks if a straight line segment between p1 and p2 stays fully within the polygon.
+ */
+function isSegmentInsidePolygon(poly, p1, p2, steps = 10) {
+  if (!poly) return false;
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const pt = new Point2D(p1.x * (1 - t) + p2.x * t, p1.y * (1 - t) + p2.y * t);
+    if (!poly.containsPoint(pt)) return false;
+  }
+  return true;
+}
+
+/**
  * Decomposes all scanline rows into continuous monotonic branches (ribbons).
  * Separates forks (e.g. star legs, arch columns, letters like U, V, M) into distinct branches.
  * @param {Array<Array<{k: number, scanY: number, x1: number, x2: number}>>} allRows
@@ -28,39 +41,45 @@ export function partitionScanlineBranches(allRows) {
       continue;
     }
 
+    const branchToSegs = activeBranches.map(b => {
+      const lastSeg = b[b.length - 1];
+      return rowSegs.filter(s => segmentsOverlap(lastSeg, s));
+    });
+
+    const segToBranches = rowSegs.map(s => {
+      return activeBranches.filter(b => segmentsOverlap(b[b.length - 1], s));
+    });
+
     const nextActiveBranches = [];
-    const unmatchedRowSegs = [...rowSegs];
+    const claimedSegs = new Set();
 
-    for (const branch of activeBranches) {
-      const lastSeg = branch[branch.length - 1];
-      const matches = unmatchedRowSegs.filter(s => segmentsOverlap(lastSeg, s));
+    for (let bIdx = 0; bIdx < activeBranches.length; bIdx++) {
+      const b = activeBranches[bIdx];
+      const matchedSegs = branchToSegs[bIdx];
 
-      if (matches.length === 1) {
-        branch.push(matches[0]);
-        nextActiveBranches.push(branch);
-        unmatchedRowSegs.splice(unmatchedRowSegs.indexOf(matches[0]), 1);
-      } else if (matches.length > 1) {
-        // Fork detected (e.g. splitting into left and right legs)
-        // Keep the match closest in center X to the parent branch
-        const lastMidX = (lastSeg.x1 + lastSeg.x2) / 2;
-        matches.sort((a, b) => {
-          const midA = (a.x1 + a.x2) / 2;
-          const midB = (b.x1 + b.x2) / 2;
-          return Math.abs(midA - lastMidX) - Math.abs(midB - lastMidX);
-        });
+      if (matchedSegs.length === 1) {
+        const seg = matchedSegs[0];
+        const segIdx = rowSegs.indexOf(seg);
+        const incomingBranches = segToBranches[segIdx];
 
-        branch.push(matches[0]);
-        nextActiveBranches.push(branch);
-        unmatchedRowSegs.splice(unmatchedRowSegs.indexOf(matches[0]), 1);
+        if (incomingBranches.length === 1) {
+          b.push(seg);
+          nextActiveBranches.push(b);
+          claimedSegs.add(seg);
+        } else {
+          // Multiple branches merging into 1 segment: terminate branch cleanly at junction
+          completedBranches.push(b);
+        }
       } else {
-        // Branch ended (tip or bay boundary)
-        completedBranches.push(branch);
+        // Fork or termination: complete branch at junction
+        completedBranches.push(b);
       }
     }
 
-    // Any remaining unmatched segments start new branches
-    for (const newSeg of unmatchedRowSegs) {
-      nextActiveBranches.push([newSeg]);
+    for (const seg of rowSegs) {
+      if (!claimedSegs.has(seg)) {
+        nextActiveBranches.push([seg]);
+      }
     }
 
     activeBranches = nextActiveBranches;
@@ -71,61 +90,84 @@ export function partitionScanlineBranches(allRows) {
 }
 
 /**
- * Sequences partitioned branches using a greedy nearest-neighbor heuristic
+ * Sequences partitioned branches using direct physical continuity & greedy nearest-neighbor
  * with bidirectional traversal (can sew branch top-to-bottom or bottom-to-top).
  * @param {Array<Array<{k: number, scanY: number, x1: number, x2: number}>>} branches
  * @param {Point2D|null} startPt
  * @param {number} angleRad
+ * @param {Polygon|null} polygon
  * @returns {Array<{branch: Array, reversed: boolean}>}
  */
-export function sequenceBranches(branches, startPt, angleRad) {
+export function sequenceBranches(branches, startPt, angleRad, polygon = null) {
   if (!branches || branches.length === 0) return [];
 
   const unvisited = [...branches];
   const sequenced = [];
   let currPos = startPt ? startPt.clone() : null;
+  let lastExitSeg = null;
 
   while (unvisited.length > 0) {
+    let bestBranch = null;
+    let bestDist = Infinity;
+    let bestReversed = false;
+
     if (!currPos) {
-      // Start with the topmost branch (lowest row index k)
       unvisited.sort((a, b) => a[0].k - b[0].k);
-      const first = unvisited.shift();
-      sequenced.push({ branch: first, reversed: false });
-      const lastSeg = first[first.length - 1];
-      currPos = new Point2D(lastSeg.x2, lastSeg.scanY).rotate(angleRad);
+      bestBranch = unvisited[0];
+      bestReversed = false;
     } else {
-      let bestIdx = 0;
-      let bestDist = Infinity;
-      let bestReversed = false;
-
-      for (let i = 0; i < unvisited.length; i++) {
-        const b = unvisited[i];
-        const segTop = b[0];
-        const segBottom = b[b.length - 1];
-
-        const topPt = new Point2D((segTop.x1 + segTop.x2) / 2, segTop.scanY).rotate(angleRad);
-        const bottomPt = new Point2D((segBottom.x1 + segBottom.x2) / 2, segBottom.scanY).rotate(angleRad);
-
-        const dTop = currPos.distance(topPt);
-        const dBottom = currPos.distance(bottomPt);
-
-        if (dTop < bestDist) {
-          bestDist = dTop;
-          bestIdx = i;
-          bestReversed = false;
-        }
-        if (dBottom < bestDist) {
-          bestDist = dBottom;
-          bestIdx = i;
-          bestReversed = true;
+      // 1. Direct physical continuation (adjacent rows in scanline space)
+      let directConnected = null;
+      let directReversed = false;
+      if (lastExitSeg) {
+        for (const b of unvisited) {
+          const topSeg = b[0];
+          const btmSeg = b[b.length - 1];
+          if (Math.abs(topSeg.k - lastExitSeg.k) <= 1 && segmentsOverlap(topSeg, lastExitSeg)) {
+            directConnected = b;
+            directReversed = false;
+            break;
+          }
+          if (Math.abs(btmSeg.k - lastExitSeg.k) <= 1 && segmentsOverlap(btmSeg, lastExitSeg)) {
+            directConnected = b;
+            directReversed = true;
+            break;
+          }
         }
       }
 
-      const chosen = unvisited.splice(bestIdx, 1)[0];
-      sequenced.push({ branch: chosen, reversed: bestReversed });
-      const exitSeg = bestReversed ? chosen[0] : chosen[chosen.length - 1];
-      currPos = new Point2D(exitSeg.x2, exitSeg.scanY).rotate(angleRad);
+      if (directConnected) {
+        bestBranch = directConnected;
+        bestReversed = directReversed;
+      } else {
+        for (const b of unvisited) {
+          const segTop = b[0];
+          const segBottom = b[b.length - 1];
+
+          const topPt = new Point2D((segTop.x1 + segTop.x2) / 2, segTop.scanY).rotate(angleRad);
+          const bottomPt = new Point2D((segBottom.x1 + segBottom.x2) / 2, segBottom.scanY).rotate(angleRad);
+
+          const dTop = currPos.distance(topPt);
+          const dBottom = currPos.distance(bottomPt);
+
+          if (dTop < bestDist) {
+            bestDist = dTop;
+            bestBranch = b;
+            bestReversed = false;
+          }
+          if (dBottom < bestDist) {
+            bestDist = dBottom;
+            bestBranch = b;
+            bestReversed = true;
+          }
+        }
+      }
     }
+
+    unvisited.splice(unvisited.indexOf(bestBranch), 1);
+    sequenced.push({ branch: bestBranch, reversed: bestReversed });
+    lastExitSeg = bestReversed ? bestBranch[0] : bestBranch[bestBranch.length - 1];
+    currPos = new Point2D(lastExitSeg.x2, lastExitSeg.scanY).rotate(angleRad);
   }
 
   return sequenced;
@@ -205,9 +247,9 @@ export function generateTatamiFill(polygon, options = {}) {
   // 4. Partition scanlines into continuous monotonic branches
   const branches = partitionScanlineBranches(allRows);
 
-  // 5. Sequence branches with greedy nearest-neighbor & bidirectional entry
+  // 5. Sequence branches with direct continuity & bidirectional entry
   const startPt = stitches.length > 0 ? new Point2D(stitches[stitches.length - 1].x, stitches[stitches.length - 1].y) : null;
-  const sequenced = sequenceBranches(branches, startPt, angleRad);
+  const sequenced = sequenceBranches(branches, startPt, angleRad, polygon);
 
   // 6. Sew each branch sequentially
   let lastPt = stitches.length > 0 ? stitches[stitches.length - 1] : null;
@@ -228,14 +270,78 @@ export function generateTatamiFill(polygon, options = {}) {
       if (segLen < 0.40) continue;
 
       const origStart = new Point2D(segStart, scanY).rotate(angleRad);
-      if (!lastPt) {
-        stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.JUMP, colorIndex));
-      } else {
-        const dist = lastPt.distance(origStart);
-        if (dist > density * 1.6) {
+
+      if (r === 0) {
+        // Inter-branch transition: travel inside polygon when possible
+        if (!lastPt) {
           stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.JUMP, colorIndex));
-        } else if (dist >= 0.35) {
-          stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.STITCH, colorIndex));
+        } else {
+          const dist = lastPt.distance(origStart);
+          const canDirect = isSegmentInsidePolygon(polygon, lastPt, origStart);
+
+          if (canDirect && dist <= 25.0) {
+            const steps = Math.max(1, Math.ceil(dist / 2.5));
+            for (let s = 1; s <= steps; s++) {
+              const t = s / steps;
+              stitches.push(new StitchPoint(
+                lastPt.x * (1 - t) + origStart.x * t,
+                lastPt.y * (1 - t) + origStart.y * t,
+                StitchCommand.STITCH,
+                colorIndex
+              ));
+            }
+          } else if (polygon && polygon.holes.length === 0 && dist > 5.0) {
+            const center = polygon.centroid();
+            if (isSegmentInsidePolygon(polygon, lastPt, center) && isSegmentInsidePolygon(polygon, center, origStart)) {
+              const d1 = lastPt.distance(center);
+              const s1 = Math.max(1, Math.ceil(d1 / 2.5));
+              for (let s = 1; s <= s1; s++) {
+                const t = s / s1;
+                stitches.push(new StitchPoint(
+                  lastPt.x * (1 - t) + center.x * t,
+                  lastPt.y * (1 - t) + center.y * t,
+                  StitchCommand.STITCH,
+                  colorIndex
+                ));
+              }
+              const d2 = center.distance(origStart);
+              const s2 = Math.max(1, Math.ceil(d2 / 2.5));
+              for (let s = 1; s <= s2; s++) {
+                const t = s / s2;
+                stitches.push(new StitchPoint(
+                  center.x * (1 - t) + origStart.x * t,
+                  center.y * (1 - t) + origStart.y * t,
+                  StitchCommand.STITCH,
+                  colorIndex
+                ));
+              }
+            } else {
+              stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.JUMP, colorIndex));
+            }
+          } else {
+            stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.JUMP, colorIndex));
+          }
+        }
+      } else {
+        // Intra-branch row-to-row transition: step along edge is a STITCH, not JUMP!
+        if (lastPt) {
+          const dist = lastPt.distance(origStart);
+          if (dist <= Math.max(stitchLength, 3.5)) {
+            if (dist >= 0.35) {
+              stitches.push(new StitchPoint(origStart.x, origStart.y, StitchCommand.STITCH, colorIndex));
+            }
+          } else {
+            const steps = Math.ceil(dist / 2.5);
+            for (let s = 1; s <= steps; s++) {
+              const t = s / steps;
+              stitches.push(new StitchPoint(
+                lastPt.x * (1 - t) + origStart.x * t,
+                lastPt.y * (1 - t) + origStart.y * t,
+                StitchCommand.STITCH,
+                colorIndex
+              ));
+            }
+          }
         }
       }
       lastPt = origStart;

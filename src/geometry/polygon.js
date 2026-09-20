@@ -39,6 +39,16 @@ export class Polygon {
     return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
   }
 
+  centroid() {
+    if (this.vertices.length === 0) return new Point2D(0, 0);
+    let cx = 0, cy = 0;
+    for (const v of this.vertices) {
+      cx += v.x;
+      cy += v.y;
+    }
+    return new Point2D(cx / this.vertices.length, cy / this.vertices.length);
+  }
+
   signedArea() {
     let area = 0;
     const n = this.vertices.length;
