@@ -4,6 +4,26 @@ All notable changes to the Artwork-to-Embroidery Engine are documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-09-20
+
+### Added
+- **DAW-Style Multi-Color Stitch Timeline (`public/app.js` & `public/index.html`):**
+  - Proportional multi-layer color blocks on timeline track displaying exact percentage and stitch count of each thread spool (`.daw-segment`).
+  - Interactive scrubbing with native range accessibility overlay and synchronized visual playhead thumb with specular hairline marker.
+  - One-click layer seeking: clicking any colored segment jumps the playhead directly to that layer's start index.
+  - Hover tooltips detailing layer name, stitch count, and design percentage.
+  - Live telemetry readout: `${playheadIndex} / ${totalStitches} sts`, percentage indicator, and dynamic active thread layer pill with live color dot.
+- **Hardware Simulation Transport Controls (`public/app.js` & `public/index.html`):**
+  - Transport buttons: Jump to Start (`⏮`), Step Backward 10 stitches (`⏪`), Play / Pause (`▶`/`⏸`), Step Forward 10 stitches (`⏩`), and Simulation Loop Toggle (`🔁`).
+  - Configurable simulation speeds: `1x`, `2x`, `5x`, `15x`, `50x`, `100x`.
+  - Seamless loop repeat: automatically wraps to start when reaching end if loop mode is toggled on.
+  - Complete keyboard hotkey map: `P` (Play/Pause), `L` (Toggle Loop), `[` (Step -10), `]` (Step +10), `\` / `Home` (Jump to Start), `End` (Seek to End).
+- **High-Visibility CAD Virtual Needle Reticle (`public/app.js`):**
+  - Screen-invariant CAD reticle rendering at active needle penetration coordinates.
+  - Soft radial radar glow and outer segmented CAD dashed targeting ring.
+  - Fine cardinal crosshairs with steel needle tip and specular bevel.
+  - Dynamic floating CAD callout flag connected via hairline pointer displaying active machine operation and distance in real time (`STITCH 2.8mm`, `JUMP 8.4mm`, `COLOR STOP`, `TRIM`).
+
 ## [1.8.0] - 2026-09-20
 
 ### Added

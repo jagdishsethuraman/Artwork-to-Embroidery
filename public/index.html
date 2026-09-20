@@ -550,39 +550,307 @@
       50% { opacity: 1; transform: translateX(-50%) scale(1.02); }
     }
 
-    /* Floating Playback Bar */
+    /* Floating DAW-Style Stitch Timeline & Needle Deck */
     .canvas-hud-bottom {
       position: absolute;
-      bottom: 16px;
-      right: 16px;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 620px;
       background: rgba(11, 15, 25, 0.94);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border-subtle);
       border-radius: 12px;
-      padding: 8px 12px;
+      padding: 8px 12px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      z-index: 5;
+    }
+
+    .timeline-ctrl-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .transport-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+
+    .transport-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      border-radius: 6px;
+      padding: 4px 6px;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-spring);
+      user-select: none;
+    }
+
+    .transport-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-hover);
+      color: #fff;
+    }
+
+    .transport-btn:active {
+      transform: scale(0.96);
+    }
+
+    .transport-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: var(--accent-blue);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    }
+
+    .transport-play-btn {
+      padding: 4px 10px;
+      font-weight: 600;
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.3);
+      color: var(--accent-blue);
+    }
+
+    .transport-play-btn:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: rgba(56, 189, 248, 0.55);
+      color: #fff;
+    }
+
+    .hud-sub-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--border-subtle);
+      flex-shrink: 0;
+    }
+
+    .timeline-meta-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .timeline-counter {
+      font-size: 11px;
+      font-weight: 600;
+      color: #f1f5f9;
+      white-space: nowrap;
+    }
+
+    .timeline-pct {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 1px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .timeline-layer-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      padding: 2px 8px;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .timeline-layer-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .timeline-layer-name {
+      font-size: 10px;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .timeline-speed-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .speed-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .speed-select {
+      width: 58px;
+      padding: 3px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    /* DAW Track Container */
+    .daw-track-wrapper {
+      position: relative;
+      width: 100%;
+      height: 14px;
+      border-radius: 6px;
+      background: rgba(3, 7, 18, 0.85);
+      border: 1px solid var(--border-subtle);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      overflow: visible;
+      cursor: pointer;
+    }
+
+    .daw-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      height: 100%;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .daw-segment {
+      height: 100%;
+      position: relative;
+      opacity: 0.85;
+      transition: opacity var(--duration-fast) var(--ease-spring);
+      border-right: 1px solid rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+
+    .daw-segment:hover {
+      opacity: 1;
+      filter: brightness(1.25);
+    }
+
+    .daw-segment.is-muted {
+      opacity: 0.25;
+      background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.4) 4px, rgba(0, 0, 0, 0.4) 8px) !important;
+    }
+
+    .daw-playhead {
+      position: absolute;
+      top: -4px;
+      bottom: -4px;
+      width: 0px;
+      pointer-events: none;
+      z-index: 2;
+      transform: translateX(-50%);
+      transition: left 40ms linear;
+    }
+
+    .daw-playhead-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 2px;
+      background: #f8fafc;
+      box-shadow: 0 0 6px #38bdf8, 0 0 12px rgba(56, 189, 248, 0.6);
+      border-radius: 1px;
+    }
+
+    .daw-playhead-handle {
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 6px;
+      background: #38bdf8;
+      clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+    }
+
+    /* Invisible overlay input range */
+    .playhead-slider {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+      z-index: 3;
+    }
+
+    .canvas-telemetry {
+      position: absolute;
+      bottom: 74px;
+      left: 16px;
+      background: rgba(11, 15, 25, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 5px 12px;
       display: flex;
       align-items: center;
       gap: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      font-size: 11px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
       z-index: 5;
-      width: 330px;
-      max-width: calc(100% - 32px);
     }
 
     @media (max-width: 1240px) {
       .canvas-telemetry {
-        bottom: 60px;
+        bottom: 84px;
         left: 12px;
         font-size: 10px;
         padding: 4px 8px;
         gap: 8px;
       }
       .canvas-hud-bottom {
-        bottom: 12px;
-        left: 12px;
-        right: 12px;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
         width: auto;
-        max-width: calc(100% - 24px);
+        transform: none;
+        max-width: none;
+        padding: 6px 10px 8px 10px;
+      }
+      .timeline-layer-chip {
+        max-width: 100px;
       }
       .hoop-alert-chip {
         font-size: 10px;
@@ -590,10 +858,13 @@
       }
     }
 
-    .playhead-slider {
-      flex: 1;
-      accent-color: var(--accent-blue);
-      cursor: pointer;
+    @media (max-width: 900px) {
+      .timeline-layer-chip {
+        display: none;
+      }
+      .speed-label {
+        display: none;
+      }
     }
 
     /* Right Sidebar: Stitch Parameters & Machine Stats */
@@ -961,7 +1232,7 @@
         <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M8 3v18M16 3v18M8 8h8M8 12h8M8 16h8"/></svg>
       </div>
       <span>EmbroideryTrace Studio</span>
-      <span class="brand-tag">v1.8 Core</span>
+      <span class="brand-tag">v1.9 Core</span>
     </div>
 
     <div class="header-actions">
@@ -1226,19 +1497,72 @@
         <span id="hoopStatusDisplay" class="badge" style="font-size:10px;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);">✓ 100×100</span>
       </div>
 
-      <!-- Floating HUD: Needle Simulation Playback -->
-      <div class="canvas-hud-bottom">
-        <button class="btn" id="playPauseBtn" style="padding:4px 10px;font-size:12px;">
-          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          <span>Play</span>
-        </button>
-        <input type="range" class="playhead-slider" id="playheadSlider" min="1" max="1000" value="1000" />
-        <select id="speedSelect" style="width:75px;padding:4px;font-size:11px;">
-          <option value="2">2x</option>
-          <option value="5" selected>5x</option>
-          <option value="15">15x</option>
-          <option value="50">50x</option>
-        </select>
+      <!-- Floating HUD: DAW-Style Stitch Timeline & Needle Deck -->
+      <div class="canvas-hud-bottom" id="canvasHudBottom">
+        <!-- Row 1: Transport & Live Telemetry -->
+        <div class="timeline-ctrl-row">
+          <!-- Transport Controls -->
+          <div class="transport-group">
+            <button class="transport-btn" id="stepStartBtn" title="Jump to Start (Home / \)">
+              <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><line x1="6" y1="4" x2="6" y2="20"/><polygon points="18 4 8 12 18 20 18 4"/></svg>
+            </button>
+            <button class="transport-btn" id="stepBackBtn" title="Step Back 10 stitches ([)">
+              <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+            </button>
+            <button class="transport-btn transport-play-btn" id="playPauseBtn" title="Play / Pause Simulation (P / Space)">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+              <span id="playPauseLabel">Play</span>
+            </button>
+            <button class="transport-btn" id="stepForwardBtn" title="Step Forward 10 stitches (])">
+              <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            </button>
+            <button class="transport-btn" id="loopToggleBtn" title="Toggle Simulation Loop (L)">
+              <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+            </button>
+          </div>
+
+          <!-- Divider -->
+          <div class="hud-sub-divider"></div>
+
+          <!-- Middle: Stitch Counter & Active Layer Pill -->
+          <div class="timeline-meta-group">
+            <span class="timeline-counter mono" id="timelineCounter">0 / 0</span>
+            <span class="timeline-pct mono" id="timelinePct">0%</span>
+            <div class="timeline-layer-chip" id="timelineLayerBadge" title="Active Thread Layer">
+              <span class="timeline-layer-dot" style="background:#38bdf8;"></span>
+              <span class="timeline-layer-name">Layer 1</span>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="hud-sub-divider"></div>
+
+          <!-- Right: Speed Selector -->
+          <div class="timeline-speed-group">
+            <label class="speed-label" for="speedSelect">Speed</label>
+            <select id="speedSelect" class="speed-select" title="Simulation Speed">
+              <option value="1">1x</option>
+              <option value="2">2x</option>
+              <option value="5" selected>5x</option>
+              <option value="15">15x</option>
+              <option value="50">50x</option>
+              <option value="100">100x</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 2: DAW Multi-Segment Track & Scrubber -->
+        <div class="daw-track-wrapper" id="dawTrackWrapper" title="Drag to scrub or click layer segments">
+          <div class="daw-track" id="dawTrack">
+            <!-- Dynamically populated color-blocked segments -->
+          </div>
+          <div class="daw-playhead" id="dawPlayhead" style="left: 0%;">
+            <div class="daw-playhead-line"></div>
+            <div class="daw-playhead-handle"></div>
+          </div>
+          <!-- Accessible native slider overlay -->
+          <input type="range" class="playhead-slider" id="playheadSlider" min="0" max="1000" value="0" />
+        </div>
       </div>
     </main>
 

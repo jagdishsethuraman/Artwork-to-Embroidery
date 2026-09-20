@@ -31,6 +31,7 @@ let isPlaying = false;
 let playheadIndex = 0;
 let animationFrameId = null;
 let playbackSpeed = 5; // stitches per frame
+let isLooping = false;
 
 // Undo / Redo History Stacks
 const undoStack = [];
@@ -548,14 +549,128 @@ function updateStats() {
   document.getElementById('statHeight').innerText = `${stats.heightMm} mm`;
   document.getElementById('statStops').innerText = stats.colorChanges;
 
+  updateTimelineUI();
+}
+
+function getTimelineSegments(stitches, layers) {
+  if (!stitches || stitches.length === 0) return [];
+
+  const segments = [];
+  let currentLayerIdx = stitches[0].colorIndex !== undefined ? stitches[0].colorIndex : 0;
+  let segStart = 0;
+
+  for (let i = 1; i < stitches.length; i++) {
+    const s = stitches[i];
+    const cIdx = s.colorIndex !== undefined ? s.colorIndex : 0;
+    if (cIdx !== currentLayerIdx) {
+      const count = i - segStart;
+      const layer = layers[currentLayerIdx] || { name: `Layer ${currentLayerIdx + 1}`, hex: '#38bdf8' };
+      segments.push({
+        layerIndex: currentLayerIdx,
+        layerName: layer.name || `Layer ${currentLayerIdx + 1}`,
+        hex: layer.hex || '#38bdf8',
+        hidden: !!layer.hidden,
+        startIndex: segStart,
+        endIndex: i,
+        count: count,
+        pct: (count / stitches.length) * 100
+      });
+      currentLayerIdx = cIdx;
+      segStart = i;
+    }
+  }
+
+  const finalCount = stitches.length - segStart;
+  const finalLayer = layers[currentLayerIdx] || { name: `Layer ${currentLayerIdx + 1}`, hex: '#38bdf8' };
+  segments.push({
+    layerIndex: currentLayerIdx,
+    layerName: finalLayer.name || `Layer ${currentLayerIdx + 1}`,
+    hex: finalLayer.hex || '#38bdf8',
+    hidden: !!finalLayer.hidden,
+    startIndex: segStart,
+    endIndex: stitches.length,
+    count: finalCount,
+    pct: (finalCount / stitches.length) * 100
+  });
+
+  return segments;
+}
+
+function renderDawTrackSegments(stitches) {
+  const trackEl = document.getElementById('dawTrack');
+  if (!trackEl) return;
+
+  if (!stitches || stitches.length === 0) {
+    trackEl.innerHTML = '';
+    return;
+  }
+
+  const segments = getTimelineSegments(stitches, engine.layers);
+  trackEl.innerHTML = segments.map(seg => `
+    <div class="daw-segment ${seg.hidden ? 'is-muted' : ''}" 
+         style="width: ${seg.pct.toFixed(2)}%; background: ${seg.hex};" 
+         data-start="${seg.startIndex}" 
+         data-end="${seg.endIndex}" 
+         data-count="${seg.count}" 
+         title="${seg.layerName}: ${seg.count.toLocaleString()} stitches (${Math.round(seg.pct)}%)">
+    </div>
+  `).join('');
+}
+
+function updateTimelineUI() {
+  const stitches = engine.compileStitches();
+  const total = stitches.length;
   const slider = document.getElementById('playheadSlider');
-  slider.max = Math.max(1, stats.stitchCount - 1);
+  if (slider) {
+    slider.max = Math.max(1, total);
+    slider.min = 0;
+    slider.value = playheadIndex;
+  }
+
+  // Update counter
+  const counterEl = document.getElementById('timelineCounter');
+  if (counterEl) {
+    counterEl.textContent = `${playheadIndex.toLocaleString()} / ${total.toLocaleString()}`;
+  }
+
+  // Update percentage
+  const pctEl = document.getElementById('timelinePct');
+  const pct = total > 0 ? (playheadIndex / total) * 100 : 0;
+  if (pctEl) {
+    pctEl.textContent = `${Math.round(pct)}%`;
+  }
+
+  // Update playhead thumb on DAW track
+  const dawPlayhead = document.getElementById('dawPlayhead');
+  if (dawPlayhead) {
+    dawPlayhead.style.left = `${Math.min(100, Math.max(0, pct))}%`;
+  }
+
+  // Update active layer chip
+  const layerBadge = document.getElementById('timelineLayerBadge');
+  if (layerBadge) {
+    if (total > 0 && playheadIndex > 0) {
+      const activeStitch = stitches[Math.min(playheadIndex - 1, total - 1)];
+      const activeLayer = engine.layers[activeStitch.colorIndex] || engine.layers[0];
+      const dotHex = activeLayer ? activeLayer.hex : '#38bdf8';
+      const name = activeLayer ? (activeLayer.name || `Layer ${activeStitch.colorIndex + 1}`) : 'Layer 1';
+      layerBadge.innerHTML = `<span class="timeline-layer-dot" style="background:${dotHex};"></span><span class="timeline-layer-name">${name}</span>`;
+    } else if (engine.layers.length > 0) {
+      const firstLayer = engine.layers[0];
+      layerBadge.innerHTML = `<span class="timeline-layer-dot" style="background:${firstLayer.hex};"></span><span class="timeline-layer-name">${firstLayer.name}</span>`;
+    } else {
+      layerBadge.innerHTML = `<span class="timeline-layer-name" style="color:var(--text-muted);">No stitches</span>`;
+    }
+  }
+
+  // Render or refresh DAW track color blocks
+  renderDawTrackSegments(stitches);
 }
 
 function resetPlayhead() {
   const stitches = engine.compileStitches();
   playheadIndex = stitches.length;
-  document.getElementById('playheadSlider').value = playheadIndex;
+  updateTimelineUI();
 }
 
 // -------------------------------------------------------------
@@ -666,19 +781,133 @@ function render() {
       prev = curr;
     }
 
-    // Active Needle Indicator during playback
-    if (maxIdx > 0 && maxIdx < stitches.length) {
-      const head = stitches[maxIdx - 1];
+    // High-Visibility Virtual Needle Reticle & CAD Crosshair
+    if (maxIdx > 0 && stitches.length > 0) {
+      const headIdx = Math.min(maxIdx - 1, stitches.length - 1);
+      const head = stitches[headIdx];
+      const prevStitch = headIdx > 0 ? stitches[headIdx - 1] : head;
       const headLayer = engine.layers[head.colorIndex] || engine.layers[0];
-      if (!headLayer || !headLayer.hidden) {
-        ctx.fillStyle = '#f43f5e';
-        ctx.beginPath();
-        ctx.arc(head.x, head.y, 0.6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 0.2;
-        ctx.stroke();
+      const needleHex = headLayer ? headLayer.hex : '#38bdf8';
+
+      // Screen-invariant CAD sizing (stays clear and readable at all scales)
+      const reticleR = Math.max(1.2, 14 / scale);
+      const crosshairExt = reticleR * 1.6;
+      const strokeW = Math.max(0.12, 1.2 / scale);
+
+      ctx.save();
+      ctx.translate(head.x, head.y);
+
+      // 1. Soft radial radar glow under needle
+      const glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, reticleR * 1.5);
+      glowGrad.addColorStop(0, 'rgba(56, 189, 248, 0.28)');
+      glowGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.08)');
+      glowGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, reticleR * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Precision Outer Targeting Ring (segmented CAD dashes)
+      ctx.beginPath();
+      ctx.setLineDash([reticleR * 0.4, reticleR * 0.2]);
+      ctx.arc(0, 0, reticleR, 0, Math.PI * 2);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = strokeW;
+      ctx.stroke();
+
+      // 3. Fine Cardinal Crosshairs
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+      ctx.lineWidth = strokeW * 0.8;
+      // Top tick
+      ctx.moveTo(0, -reticleR * 0.5);
+      ctx.lineTo(0, -crosshairExt);
+      // Bottom tick
+      ctx.moveTo(0, reticleR * 0.5);
+      ctx.lineTo(0, crosshairExt);
+      // Left tick
+      ctx.moveTo(-reticleR * 0.5, 0);
+      ctx.lineTo(-crosshairExt, 0);
+      // Right tick
+      ctx.moveTo(reticleR * 0.5, 0);
+      ctx.lineTo(crosshairExt, 0);
+      ctx.stroke();
+
+      // 4. Physical Needle Point Core with Specular Bevel
+      const needlePointR = Math.max(0.35, 3.5 / scale);
+      // Dark fabric puncture hole shadow
+      ctx.beginPath();
+      ctx.arc(0, 0, needlePointR * 1.25, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fill();
+
+      // Steel needle tip bevel
+      ctx.beginPath();
+      ctx.arc(0, 0, needlePointR, 0, Math.PI * 2);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fill();
+      ctx.strokeStyle = '#020617';
+      ctx.lineWidth = strokeW * 0.6;
+      ctx.stroke();
+
+      // Active thread color accent ring around needle point
+      ctx.beginPath();
+      ctx.arc(0, 0, needlePointR * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = needleHex;
+      ctx.fill();
+
+      // 5. Floating CAD Stitch Callout Flag
+      const flagX = crosshairExt + (2 / scale);
+      const flagY = -crosshairExt;
+      const fontSize = Math.max(0.75, 8.5 / scale);
+      ctx.font = `600 ${fontSize}px "JetBrains Mono", monospace`;
+
+      const dist = Math.hypot(head.x - prevStitch.x, head.y - prevStitch.y);
+      let cmdLabel = `STITCH ${dist.toFixed(1)}mm`;
+      let cmdBg = 'rgba(56, 189, 248, 0.92)';
+      let cmdColor = '#0b0f19';
+      if (head.command === StitchCommand.JUMP) {
+        cmdLabel = `JUMP ${dist.toFixed(1)}mm`;
+        cmdBg = 'rgba(245, 158, 11, 0.92)';
+      } else if (head.command === StitchCommand.COLOR_CHANGE) {
+        cmdLabel = 'COLOR STOP';
+        cmdBg = 'rgba(168, 85, 247, 0.92)';
+      } else if (head.command === StitchCommand.TRIM) {
+        cmdLabel = 'TRIM';
+        cmdBg = 'rgba(244, 63, 94, 0.92)';
       }
+
+      const textMetrics = ctx.measureText(cmdLabel);
+      const padX = fontSize * 0.4;
+      const padY = fontSize * 0.25;
+      const badgeW = textMetrics.width + padX * 2;
+      const badgeH = fontSize + padY * 2;
+
+      // Connecting hairline from reticle to callout chip
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.lineWidth = strokeW * 0.6;
+      ctx.moveTo(crosshairExt * 0.7, -crosshairExt * 0.7);
+      ctx.lineTo(flagX, flagY + badgeH / 2);
+      ctx.stroke();
+
+      // Callout background
+      ctx.fillStyle = cmdBg;
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(flagX, flagY, badgeW, badgeH, 2 / scale);
+      } else {
+        ctx.rect(flagX, flagY, badgeW, badgeH);
+      }
+      ctx.fill();
+
+      // Callout text
+      ctx.fillStyle = cmdColor;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(cmdLabel, flagX + padX, flagY + badgeH / 2);
+
+      ctx.restore();
     }
   }
 
@@ -1118,7 +1347,7 @@ function applyKnifeSplit(p1, p2) {
 }
 
 // -------------------------------------------------------------
-// Playback / Needle Simulation (Fixed Restart & Scrubbing)
+// Playback / Needle Simulation (DAW Transport & Looping)
 // -------------------------------------------------------------
 function togglePlayback() {
   const stitches = engine.compileStitches();
@@ -1127,20 +1356,24 @@ function togglePlayback() {
   // If at or near end, restart from beginning
   if (playheadIndex >= stitches.length - 2) {
     playheadIndex = 0;
-    document.getElementById('playheadSlider').value = 0;
   }
 
   isPlaying = !isPlaying;
-  const btn = document.getElementById('playPauseBtn');
-  btn.innerHTML = isPlaying
-    ? `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg><span>Pause</span>`
-    : `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><polygon points="6 4 20 12 6 20 6 4"/></svg><span>Play</span>`;
+  updatePlayPauseButton();
 
   if (isPlaying) {
     animatePlayhead();
   } else {
     cancelAnimationFrame(animationFrameId);
   }
+}
+
+function updatePlayPauseButton() {
+  const btn = document.getElementById('playPauseBtn');
+  if (!btn) return;
+  btn.innerHTML = isPlaying
+    ? `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg><span id="playPauseLabel">Pause</span>`
+    : `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><polygon points="6 4 20 12 6 20 6 4"/></svg><span id="playPauseLabel">Play</span>`;
 }
 
 function animatePlayhead() {
@@ -1150,19 +1383,52 @@ function animatePlayhead() {
   playheadIndex += playbackSpeed;
 
   if (playheadIndex >= stitches.length) {
-    playheadIndex = stitches.length;
-    isPlaying = false;
-    document.getElementById('playPauseBtn').innerHTML = `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><polygon points="6 4 20 12 6 20 6 4"/></svg><span>Play</span>`;
-    document.getElementById('playheadSlider').value = playheadIndex;
-    render();
-    return;
+    if (isLooping && stitches.length > 0) {
+      playheadIndex = 0;
+    } else {
+      playheadIndex = stitches.length;
+      isPlaying = false;
+      updatePlayPauseButton();
+      updateTimelineUI();
+      render();
+      return;
+    }
   }
 
-  document.getElementById('playheadSlider').value = playheadIndex;
+  updateTimelineUI();
   render();
 
   if (isPlaying) {
     animationFrameId = requestAnimationFrame(animatePlayhead);
+  }
+}
+
+function stepPlayhead(delta) {
+  const stitches = engine.compileStitches();
+  if (stitches.length === 0) return;
+  playheadIndex = Math.max(0, Math.min(stitches.length, playheadIndex + delta));
+  updateTimelineUI();
+  render();
+}
+
+function jumpToStart() {
+  playheadIndex = 0;
+  updateTimelineUI();
+  render();
+}
+
+function seekToEnd() {
+  const stitches = engine.compileStitches();
+  playheadIndex = stitches.length;
+  updateTimelineUI();
+  render();
+}
+
+function toggleLoop() {
+  isLooping = !isLooping;
+  const loopBtn = document.getElementById('loopToggleBtn');
+  if (loopBtn) {
+    loopBtn.classList.toggle('active', isLooping);
   }
 }
 
@@ -1912,6 +2178,24 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key.toLowerCase() === 'k') {
     e.preventDefault();
     setTool('split');
+  } else if (e.key.toLowerCase() === 'p') {
+    e.preventDefault();
+    togglePlayback();
+  } else if (e.key.toLowerCase() === 'l') {
+    e.preventDefault();
+    toggleLoop();
+  } else if (e.key === '[') {
+    e.preventDefault();
+    stepPlayhead(-10);
+  } else if (e.key === ']') {
+    e.preventDefault();
+    stepPlayhead(10);
+  } else if (e.key === '\\' || e.key === 'Home') {
+    e.preventDefault();
+    jumpToStart();
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    seekToEnd();
   }
 });
 
@@ -2126,8 +2410,33 @@ document.getElementById('underlayCheck').onchange = (e) => {
 
 document.getElementById('playPauseBtn').onclick = togglePlayback;
 
+const stepStartBtn = document.getElementById('stepStartBtn');
+if (stepStartBtn) stepStartBtn.onclick = jumpToStart;
+
+const stepBackBtn = document.getElementById('stepBackBtn');
+if (stepBackBtn) stepBackBtn.onclick = () => stepPlayhead(-10);
+
+const stepForwardBtn = document.getElementById('stepForwardBtn');
+if (stepForwardBtn) stepForwardBtn.onclick = () => stepPlayhead(10);
+
+const loopToggleBtn = document.getElementById('loopToggleBtn');
+if (loopToggleBtn) loopToggleBtn.onclick = toggleLoop;
+
+const dawTrack = document.getElementById('dawTrack');
+if (dawTrack) {
+  dawTrack.addEventListener('click', (e) => {
+    const segEl = e.target.closest('.daw-segment');
+    if (segEl && segEl.dataset.start !== undefined) {
+      playheadIndex = parseInt(segEl.dataset.start);
+      updateTimelineUI();
+      render();
+    }
+  });
+}
+
 document.getElementById('playheadSlider').oninput = (e) => {
   playheadIndex = parseInt(e.target.value);
+  updateTimelineUI();
   render();
 };
 
