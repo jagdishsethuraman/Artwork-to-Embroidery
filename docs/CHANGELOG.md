@@ -4,6 +4,19 @@ All notable changes to the Artwork-to-Embroidery Engine are documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-09-20
+
+### Changed
+- **Full Vercel Geist Design System Migration (`vercel.com/geist`):**
+  - **Color Palette & OLED Void:** Switched entire application canvas background and primary surfaces to pitch OLED black (`#000000`), replacing slate blue (`#0f172a`/`#090d16`). Implemented canonical Vercel grayscale accent scale (`--accents-1: #111111` through `--accents-8: #fafafa`).
+  - **Inverted Primary & Machined Secondary Buttons:** Primary action buttons now feature Vercel signature high-contrast inverted style (`background: #fafafa`, `color: #000000`, `border: 1px solid #fafafa`), with secondary buttons rendered in dark machined aesthetic (`background: #000000`, `border: 1px solid #222222`, `color: #ededed`).
+  - **Hairline Borders & Surface Insets:** Substituted harsh borders with ultra-refined 1px hairline borders (`#222222`/`#333333`) and Doppelrand inner specular highlights (`box-shadow: inset 0 1px 0 rgba(255,255,255,0.08)`).
+  - **Typography Scale:** Migrated all UI and data displays to official `Geist Sans` and `Geist Mono` via Google Fonts, deprecating Outfit sans.
+  - **Hairline Range Sliders:** Upgraded parameter sliders to 3px hairline tracks with 14px crisp white circular thumbs (`border: 2px solid #000000`).
+  - **CAD Virtual Needle Reticle:** Retuned reticle radar glow to Vercel signature electric blue (`#0070f3`) and typography to `Geist Mono`.
+  - **Dynamically Moldable Panels:** Enforced `flex-shrink: 0` and `min-height: 46px` on `.layer-card` elements with dedicated `overflow-y: auto` layer containers, preventing vertical squishing on constrained viewports.
+  - **Header Action Workflow:** Integrated `Add Lettering` modal trigger directly into the primary top navigation header alongside `Import Artwork` and `Export Embroidery`.
+
 ## [1.9.0] - 2026-09-20
 
 ### Added

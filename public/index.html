@@ -3,67 +3,107 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EmbroideryTrace AI Engine — Vector to Machine Stitch Studio</title>
+  <title>EmbroideryTrace Studio — Vercel Geist Machine Digitizer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    /* -------------------------------------------------------------
+       Vercel Geist Canonical Design Tokens
+       ------------------------------------------------------------- */
     :root {
-      /* Deep OLED Surfaces */
-      --bg-void: #060911;
-      --bg-main: #0a0e18;
-      --bg-panel: #0f1523;
-      --bg-card: #151d2f;
-      --bg-card-hover: #1b263d;
-      --bg-input: #0b101c;
+      --geist-foreground: #ededed;
+      --geist-background: #000000;
+      --geist-selection: #0070f3;
+      
+      /* Grayscale Palette (Canonical Scale) */
+      --accents-1: #111111; /* Card backgrounds */
+      --accents-2: #222222; /* Card borders & secondary hover */
+      --accents-3: #333333; /* Dividers & subtle borders */
+      --accents-4: #444444; /* Input focus borders */
+      --accents-5: #666666; /* Secondary icons & labels */
+      --accents-6: #888888; /* Muted text */
+      --accents-7: #eaeaea; /* High contrast text */
+      --accents-8: #fafafa; /* Pure white & primary button */
 
-      /* Precision Hairline Borders & Doppelrand Insets */
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.16);
-      --border-active: #0ea5e9;
-      --border-active-glow: rgba(14, 165, 233, 0.35);
+      /* Semantic Accents */
+      --geist-success: #0070f3;
+      --geist-warning: #f5a623;
+      --geist-error: #ee0000;
+      --geist-cyan: #50e3c2;
+      --geist-purple: #7928ca;
+
+      /* Backwards-Compatible Tokens */
+      --bg-void: #000000;
+      --bg-main: #000000;
+      --bg-panel: #000000;
+      --bg-card: #111111;
+      --bg-card-hover: #161616;
+      --bg-input: #0c0c0c;
+
+      --border-subtle: var(--accents-2);
+      --border-hover: var(--accents-3);
+      --border-active: var(--geist-selection);
+      --border-active-glow: rgba(0, 112, 243, 0.35);
       --highlight-rim: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      --doppelrand: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
-      /* Typography Colors */
-      --text-primary: #f8fafc;
-      --text-secondary: #cbd5e1;
-      --text-muted: #8492a6;
-      --text-faint: #475569;
+      --text-primary: #ededed;
+      --text-secondary: #a1a1a1;
+      --text-muted: #888888;
+      --text-faint: #444444;
 
-      /* Accent Palette */
-      --accent-blue: #0ea5e9;
-      --accent-blue-hover: #38bdf8;
-      --accent-cyan: #06b6d4;
-      --accent-pink: #f43f5e;
-      --accent-violet: #8b5cf6;
-      --accent-emerald: #10b981;
-      --accent-amber: #f59e0b;
+      --accent-blue: #0070f3;
+      --accent-blue-hover: #3291ff;
+      --accent-cyan: #50e3c2;
+      --accent-pink: #eb3678;
+      --accent-violet: #7928ca;
+      --accent-emerald: #0070f3;
+      --accent-amber: #f5a623;
 
-      /* Fonts */
-      --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      /* Typography */
+      --font-main: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-      /* Haptic Physics & Animation (Emil Kowalski spec) */
+      /* Elevation & Doppelrand */
+      --shadow-border: 0 0 0 1px var(--accents-2);
+      --shadow-modal: 0 0 0 1px var(--accents-2), 0 24px 48px rgba(0, 0, 0, 0.9);
+
+      /* Layout Dimensions */
+      --header-height: 52px;
+      --sidebar-width: 320px;
+
+      /* Haptic Physics & Animation */
       --ease-spring: cubic-bezier(0.2, 0, 0, 1);
       --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
       --duration-fast: 120ms;
       --duration-norm: 200ms;
     }
 
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
     body {
-      background-color: var(--bg-main);
-      color: var(--text-primary);
-      font-family: var(--font-main);
+      background-color: var(--geist-background);
+      color: var(--geist-foreground);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.5;
+      letter-spacing: -0.01em;
       height: 100vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      letter-spacing: 0;
     }
 
     /* Cohesive Zero-Emoji SVG Icon System */
@@ -80,6 +120,7 @@
       flex-shrink: 0;
       transition: transform var(--duration-fast) var(--ease-out);
     }
+    .svg-icon-xs { width: 11px; height: 11px; vertical-align: -1px; }
     .svg-icon-sm { width: 12px; height: 12px; vertical-align: -1px; }
     .svg-icon-md { width: 15px; height: 15px; vertical-align: -2px; }
     .svg-icon-lg { width: 18px; height: 18px; vertical-align: -3px; }
@@ -87,65 +128,71 @@
 
     /* Precision Dark Scrollbars */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
     }
     ::-webkit-scrollbar-track {
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.12);
+      background: var(--accents-2);
       border-radius: 3px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.22);
+      background: var(--accents-3);
     }
 
-    /* Top Navigation Bar */
+    /* -------------------------------------------------------------
+       Header: Machined Vercel Geist Bar
+       ------------------------------------------------------------- */
     header {
-      height: 56px;
-      background: var(--bg-panel);
-      border-bottom: 1px solid var(--border-subtle);
-      box-shadow: var(--highlight-rim);
+      height: var(--header-height);
+      background: var(--geist-background);
+      border-bottom: 1px solid var(--accents-2);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 20px;
-      z-index: 10;
+      padding: 0 16px;
+      z-index: 20;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-weight: 800;
-      font-size: 15px;
-      letter-spacing: -0.02em;
+      gap: 12px;
     }
 
     .brand-mark {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(139, 92, 246, 0.25));
-      border: 1px solid rgba(14, 165, 233, 0.35);
+      width: 24px;
+      height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--accent-blue);
-      box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
+      border-radius: 6px;
+      color: var(--accents-8);
+      box-shadow: none;
+    }
+
+    .brand span:not(.brand-tag) {
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+      color: var(--accents-8);
     }
 
     .brand-tag {
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(139, 92, 246, 0.25));
-      color: #38bdf8;
-      border: 1px solid rgba(14, 165, 233, 0.3);
-      font-size: 9.5px;
-      font-weight: 700;
-      padding: 2px 7px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
       border-radius: 4px;
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
+      color: var(--accents-6);
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.04em;
     }
 
     .header-actions {
@@ -154,108 +201,154 @@
       gap: 8px;
     }
 
-    .btn {
+    /* Vercel Button Tokens */
+    .btn, .btn-geist {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 6px;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12.5px;
-      font-weight: 600;
       cursor: pointer;
-      border: 1px solid var(--border-subtle);
-      background: var(--bg-card);
-      color: var(--text-primary);
-      box-shadow: var(--highlight-rim);
-      transition: all var(--duration-fast) var(--ease-spring);
+      transition: all 0.15s ease;
+      white-space: nowrap;
       user-select: none;
+      background: var(--geist-background);
+      color: var(--geist-foreground);
+      border: 1px solid var(--accents-2);
+      box-shadow: none;
     }
 
-    .btn:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--border-hover);
+    .btn:hover, .btn-geist:hover {
+      background: var(--accents-1);
+      border-color: var(--accents-3);
+      color: var(--accents-8);
     }
 
-    .btn:active {
-      transform: scale(0.975);
+    .btn:active, .btn-geist:active {
+      transform: scale(0.98);
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      color: #fff;
-      box-shadow: 0 2px 10px rgba(14, 165, 233, 0.3), var(--highlight-rim);
+    /* Signature Inverted Vercel Primary Button */
+    .btn-primary, .btn-geist-primary {
+      background: var(--accents-8) !important;
+      color: var(--geist-background) !important;
+      border: 1px solid var(--accents-8) !important;
+      font-weight: 500 !important;
+      box-shadow: none !important;
     }
-
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #0369a1, #0284c7);
-      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.45);
-      transform: translateY(-1px);
+    .btn-primary:hover, .btn-geist-primary:hover {
+      background: var(--accents-7) !important;
+      border-color: var(--accents-7) !important;
+      color: var(--geist-background) !important;
+      transform: none !important;
     }
 
     .btn-pink {
-      background: linear-gradient(135deg, #e11d48, #be123c);
-      border: 1px solid rgba(244, 63, 94, 0.4);
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(244, 63, 94, 0.25), var(--highlight-rim);
+      background: var(--geist-background);
+      color: var(--geist-foreground);
+      border: 1px solid var(--accents-2);
+      box-shadow: none;
     }
-
     .btn-pink:hover {
-      background: linear-gradient(135deg, #be123c, #e11d48);
-      box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4);
+      background: var(--accents-1);
+      border-color: var(--accents-3);
+      color: var(--accents-8);
+      box-shadow: none;
     }
 
     .btn-active {
-      background: var(--accent-blue);
-      color: #fff;
-      border-color: var(--accent-blue);
+      background: var(--accents-2);
+      color: var(--accents-8);
+      border-color: var(--accents-3);
     }
 
-    /* Main Workspace Layout */
+    /* -------------------------------------------------------------
+       Workspace Layout: 3-Column Studio Grid
+       ------------------------------------------------------------- */
     .workspace {
       display: grid;
-      grid-template-columns: minmax(280px, 315px) minmax(380px, 1fr) minmax(280px, 320px);
+      grid-template-columns: minmax(280px, 320px) minmax(400px, 1fr) minmax(280px, 320px);
       flex: 1;
-      height: calc(100vh - 56px);
+      height: calc(100vh - var(--header-height));
       overflow: hidden;
       min-width: 0;
+      background: var(--geist-background);
     }
 
     @media (max-width: 1200px) {
       .workspace {
-        grid-template-columns: 280px 1fr 285px;
+        grid-template-columns: 280px 1fr 290px;
       }
     }
     @media (max-width: 980px) {
       .workspace {
-        grid-template-columns: 250px 1fr 260px;
+        grid-template-columns: 260px 1fr 270px;
       }
     }
 
-    /* Left Sidebar: Layers & Presets */
+    /* Left Sidebar: Presets & Spool Layers */
     .sidebar-left {
-      background: var(--bg-panel);
-      border-right: 1px solid var(--border-subtle);
+      background: var(--geist-background);
+      border-right: 1px solid var(--accents-2);
       display: flex;
       flex-direction: column;
       overflow-x: hidden;
       overflow-y: auto;
       min-width: 0;
+      z-index: 10;
     }
 
     .section-title {
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
+      color: var(--accents-5);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
+      letter-spacing: 0.06em;
       padding: 16px 16px 8px;
     }
 
+    /* Segmented Pills for Presets */
     .preset-selector {
-      display: flex;
-      gap: 8px;
-      padding: 0 16px 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      background: var(--accents-1);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--accents-2);
+      margin: 0 16px 12px;
+    }
+
+    .preset-selector .btn {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 6px 0;
+      text-align: center;
+      background: transparent;
+      color: var(--accents-6);
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      height: auto;
+      justify-content: center;
+      box-shadow: none;
+      transition: all 0.12s ease;
+    }
+
+    .preset-selector .btn:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--accents-8);
+    }
+
+    .preset-selector .btn.active {
+      background: var(--accents-2);
+      color: var(--accents-8);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     }
 
     .layers-list {
@@ -266,84 +359,131 @@
       flex: 1;
       min-width: 0;
       overflow-x: hidden;
+      overflow-y: auto;
     }
 
+    /* Geist Layer Cards */
     .layer-card {
-      padding: 10px 12px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border-subtle);
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
       border-radius: 8px;
-      cursor: pointer;
+      padding: 9px 12px;
+      margin-bottom: 2px;
+      cursor: grab;
       transition: all 0.15s ease;
       min-width: 0;
-      overflow: hidden;
+      flex-shrink: 0;
+      min-height: 46px;
+      box-shadow: none;
     }
 
     .layer-card:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.15);
+      background: #141414;
+      border-color: var(--accents-3);
     }
 
     .layer-card.active {
-      background: rgba(14, 165, 233, 0.12);
-      border-color: var(--accent-blue);
+      border-color: var(--geist-selection) !important;
+      box-shadow: 0 0 0 1px var(--geist-selection) !important;
+      background: var(--accents-1) !important;
     }
 
     .layer-card.dragging {
-      opacity: 0.45;
+      opacity: 0.4;
       transform: scale(0.98);
     }
 
     .layer-card.drag-over-top {
-      border-top: 2px solid var(--accent-blue) !important;
+      border-top: 2px solid var(--geist-selection) !important;
     }
 
     .layer-card.drag-over-bottom {
-      border-bottom: 2px solid var(--accent-blue) !important;
+      border-bottom: 2px solid var(--geist-selection) !important;
     }
 
+    .drag-handle {
+      cursor: grab;
+      color: var(--accents-5) !important;
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 0;
+      user-select: none;
+      flex-shrink: 0;
+    }
     .drag-handle:hover {
-      color: var(--accent-blue) !important;
+      color: var(--accents-8) !important;
     }
 
     .order-btn:hover {
-      color: #fff !important;
+      color: var(--accents-8) !important;
     }
 
     .layer-visibility-btn:hover {
-      background: rgba(255, 255, 255, 0.08) !important;
-      color: #f8fafc !important;
-    }
-
-    .export-option-item:hover {
-      background: rgba(255, 255, 255, 0.06) !important;
-    }
-
-    .export-option-item:active {
-      transform: scale(0.985);
+      background: var(--accents-2) !important;
+      color: var(--accents-8) !important;
     }
 
     .color-badge {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
       display: inline-block;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .badge {
+      font-family: var(--font-mono);
       font-size: 10px;
-      font-weight: 700;
+      font-weight: 600;
       padding: 2px 6px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-muted);
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
+      color: var(--accents-6);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
-    /* Center Stage: Interactive Canvas */
+    /* Design Telemetry Card in Left Sidebar */
+    .stats-card {
+      margin: 16px;
+      padding: 14px;
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-num {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accents-8);
+      letter-spacing: -0.02em;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--accents-5);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+    }
+
+    /* -------------------------------------------------------------
+       Center: Canvas Stage & Machine Viewport
+       ------------------------------------------------------------- */
     .canvas-stage {
       position: relative;
-      background: #070a12;
+      background: var(--geist-background);
       overflow: hidden;
       display: flex;
       align-items: center;
@@ -354,27 +494,28 @@
       width: 100%;
       height: 100%;
       display: block;
+      background: var(--geist-background);
       cursor: crosshair;
     }
 
-    /* Floating Canvas Toolbar */
+    /* Floating Top HUD: Vercel Segmented Bar */
     .canvas-hud-top {
       position: absolute;
-      top: 16px;
+      top: 14px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(11, 15, 25, 0.94);
+      background: rgba(0, 0, 0, 0.88);
       backdrop-filter: blur(16px);
-      border: 1px solid var(--border-subtle);
-      border-radius: 30px;
-      padding: 4px 6px;
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--accents-2);
+      border-radius: 8px;
+      padding: 3px 6px;
       display: flex;
       align-items: center;
-      gap: 4px;
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      z-index: 20;
+      gap: 3px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), var(--doppelrand);
+      z-index: 15;
       max-width: calc(100% - 24px);
-      overflow: visible;
     }
 
     .hud-group {
@@ -386,8 +527,8 @@
 
     .hud-divider {
       width: 1px;
-      height: 18px;
-      background: var(--border-subtle);
+      height: 14px;
+      background: var(--accents-2);
       margin: 0 3px;
       flex-shrink: 0;
     }
@@ -399,13 +540,13 @@
 
     .hud-menu {
       position: absolute;
-      top: calc(100% + 8px);
+      top: calc(100% + 6px);
       left: 50%;
       transform: translateX(-50%);
-      background: #0b0f19;
-      border: 1px solid var(--border-subtle);
+      background: var(--geist-background);
+      border: 1px solid var(--accents-2);
       border-radius: 8px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), 0 4px 12px rgba(0, 0, 0, 0.5);
+      box-shadow: var(--shadow-modal);
       z-index: 999;
       padding: 6px;
       backdrop-filter: blur(16px);
@@ -413,12 +554,12 @@
 
     .hud-menu-header {
       font-size: 10px;
-      font-weight: 800;
+      font-weight: 600;
       text-transform: uppercase;
-      color: var(--text-muted);
+      color: var(--accents-5);
       letter-spacing: 0.06em;
       padding: 6px 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--accents-2);
       margin-bottom: 4px;
     }
 
@@ -432,37 +573,43 @@
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
-      color: #f8fafc;
+      color: var(--geist-foreground);
       text-align: left;
-      transition: background 0.15s ease;
+      transition: background 0.12s ease;
       font-family: inherit;
     }
 
     .hud-menu-item:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--accents-1);
+      color: var(--accents-8);
     }
 
     .hud-menu-item.active {
-      background: rgba(14, 165, 233, 0.15);
-      color: var(--accent-blue);
-      font-weight: 700;
+      background: var(--accents-2);
+      color: var(--accents-8);
+      font-weight: 600;
     }
 
     .tool-btn {
-      padding: 5px 9px;
-      border-radius: 20px;
+      padding: 4px 8px;
+      border-radius: 5px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       background: transparent;
-      border: none;
-      color: var(--text-muted);
+      border: 1px solid transparent;
+      color: var(--accents-6);
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 5px;
-      transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+      transition: all 0.12s ease;
       white-space: nowrap;
       flex-shrink: 0;
+    }
+
+    .tool-btn:hover {
+      color: var(--accents-8);
+      background: var(--accents-1);
     }
 
     .tool-btn:active {
@@ -470,18 +617,14 @@
     }
 
     .tool-btn.icon-only {
-      padding: 5px 7px;
-    }
-
-    .tool-btn:hover {
-      color: #f8fafc;
-      background: rgba(255, 255, 255, 0.06);
+      padding: 4px 6px;
     }
 
     .tool-btn.active {
-      background: var(--accent-blue) !important;
-      color: #fff !important;
-      box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+      background: var(--accents-2) !important;
+      color: var(--accents-8) !important;
+      border-color: var(--accents-3) !important;
+      box-shadow: none !important;
     }
 
     @media (max-width: 1320px) {
@@ -489,46 +632,45 @@
         display: none;
       }
       .tool-btn {
-        padding: 6px 8px;
+        padding: 5px 7px;
       }
     }
 
-    /* Floating Canvas Telemetry Deck */
+    /* Floating Viewport Telemetry Chip */
     .canvas-telemetry {
       position: absolute;
-      bottom: 16px;
+      bottom: 74px;
       left: 16px;
-      background: rgba(11, 15, 25, 0.92);
+      background: rgba(0, 0, 0, 0.88);
       backdrop-filter: blur(12px);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 5px 10px;
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--accents-2);
+      border-radius: 20px;
+      padding: 4px 12px;
       display: flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-      z-index: 5;
-      font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-muted);
-      pointer-events: auto;
-      max-width: calc(100% - 32px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      z-index: 10;
+      font-family: var(--font-mono);
+      color: var(--accents-6);
     }
 
     .telemetry-val {
-      color: #f8fafc;
-      font-weight: 600;
+      color: var(--accents-8);
+      font-weight: 500;
       white-space: nowrap;
     }
 
-    /* Hoop Boundary Alert Banner */
+    /* Hoop Boundary Alert Chip */
     .hoop-alert-chip {
       position: absolute;
-      top: 66px;
+      top: 62px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(244, 63, 94, 0.16);
-      border: 1px solid rgba(244, 63, 94, 0.45);
+      background: rgba(238, 0, 0, 0.15);
+      border: 1px solid rgba(238, 0, 0, 0.4);
       border-radius: 20px;
       padding: 4px 14px;
       display: flex;
@@ -536,10 +678,10 @@
       gap: 7px;
       font-size: 11px;
       font-weight: 600;
-      color: #fda4af;
+      color: #ff6b6b;
       backdrop-filter: blur(12px);
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
-      z-index: 6;
+      z-index: 12;
       pointer-events: none;
       white-space: nowrap;
       animation: hoop-pulse 2s infinite ease-in-out;
@@ -550,7 +692,7 @@
       50% { opacity: 1; transform: translateX(-50%) scale(1.02); }
     }
 
-    /* Floating DAW-Style Stitch Timeline & Needle Deck */
+    /* Floating Bottom DAW Timeline Deck */
     .canvas-hud-bottom {
       position: absolute;
       bottom: 14px;
@@ -558,17 +700,17 @@
       transform: translateX(-50%);
       width: calc(100% - 32px);
       max-width: 620px;
-      background: rgba(11, 15, 25, 0.94);
+      background: rgba(0, 0, 0, 0.9);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
+      border: 1px solid var(--accents-2);
+      border-radius: 10px;
       padding: 8px 12px 10px 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      z-index: 5;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), var(--doppelrand);
+      z-index: 15;
     }
 
     .timeline-ctrl-row {
@@ -587,25 +729,25 @@
     }
 
     .transport-btn {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-primary);
-      border-radius: 6px;
-      padding: 4px 6px;
+      background: transparent;
+      border: 1px solid var(--accents-2);
+      color: var(--accents-6);
+      border-radius: 5px;
+      padding: 4px 7px;
       font-size: 11px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 5px;
       cursor: pointer;
-      transition: all var(--duration-fast) var(--ease-spring);
+      transition: all 0.12s ease;
       user-select: none;
     }
 
     .transport-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: var(--border-hover);
-      color: #fff;
+      color: var(--accents-8);
+      border-color: var(--accents-3);
+      background: var(--accents-1);
     }
 
     .transport-btn:active {
@@ -613,30 +755,29 @@
     }
 
     .transport-btn.active {
-      background: rgba(56, 189, 248, 0.15);
-      border-color: rgba(56, 189, 248, 0.45);
-      color: var(--accent-blue);
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+      color: var(--geist-selection);
+      border-color: var(--geist-selection);
+      background: rgba(0, 112, 243, 0.1);
     }
 
     .transport-play-btn {
-      padding: 4px 10px;
-      font-weight: 600;
-      background: rgba(56, 189, 248, 0.12);
-      border-color: rgba(56, 189, 248, 0.3);
-      color: var(--accent-blue);
+      padding: 4px 12px;
+      background: var(--accents-8) !important;
+      color: var(--geist-background) !important;
+      border-color: var(--accents-8) !important;
+      font-weight: 600 !important;
     }
 
     .transport-play-btn:hover {
-      background: rgba(56, 189, 248, 0.22);
-      border-color: rgba(56, 189, 248, 0.55);
-      color: #fff;
+      background: var(--accents-7) !important;
+      border-color: var(--accents-7) !important;
+      color: var(--geist-background) !important;
     }
 
     .hud-sub-divider {
       width: 1px;
-      height: 16px;
-      background: var(--border-subtle);
+      height: 14px;
+      background: var(--accents-2);
       flex-shrink: 0;
     }
 
@@ -651,18 +792,19 @@
 
     .timeline-counter {
       font-size: 11px;
-      font-weight: 600;
-      color: #f1f5f9;
+      font-weight: 500;
+      color: var(--accents-8);
       white-space: nowrap;
     }
 
     .timeline-pct {
       font-size: 10px;
-      font-weight: 700;
-      color: var(--text-muted);
-      background: rgba(255, 255, 255, 0.06);
+      font-weight: 600;
+      color: var(--accents-6);
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
       padding: 1px 5px;
-      border-radius: 4px;
+      border-radius: 3px;
       white-space: nowrap;
     }
 
@@ -670,8 +812,8 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid var(--border-subtle);
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
       border-radius: 9999px;
       padding: 2px 8px;
       max-width: 150px;
@@ -689,7 +831,7 @@
 
     .timeline-layer-name {
       font-size: 10px;
-      color: var(--text-secondary);
+      color: var(--accents-7);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -704,7 +846,7 @@
 
     .speed-label {
       font-size: 10px;
-      color: var(--text-muted);
+      color: var(--accents-5);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -713,23 +855,23 @@
       width: 58px;
       padding: 3px 6px;
       font-size: 11px;
-      font-weight: 600;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      color: var(--text-primary);
+      font-weight: 500;
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
+      border-radius: 5px;
+      color: var(--accents-8);
       cursor: pointer;
+      outline: none;
     }
 
     /* DAW Track Container */
     .daw-track-wrapper {
       position: relative;
       width: 100%;
-      height: 14px;
-      border-radius: 6px;
-      background: rgba(3, 7, 18, 0.85);
-      border: 1px solid var(--border-subtle);
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+      height: 12px;
+      border-radius: 4px;
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
       display: flex;
       align-items: center;
       overflow: visible;
@@ -744,7 +886,7 @@
       bottom: 0;
       display: flex;
       height: 100%;
-      border-radius: 5px;
+      border-radius: 3px;
       overflow: hidden;
     }
 
@@ -753,13 +895,12 @@
       position: relative;
       opacity: 0.85;
       transition: opacity var(--duration-fast) var(--ease-spring);
-      border-right: 1px solid rgba(0, 0, 0, 0.5);
+      border-right: 1px solid rgba(0, 0, 0, 0.6);
       cursor: pointer;
     }
 
     .daw-segment:hover {
       opacity: 1;
-      filter: brightness(1.25);
     }
 
     .daw-segment.is-muted {
@@ -769,8 +910,8 @@
 
     .daw-playhead {
       position: absolute;
-      top: -4px;
-      bottom: -4px;
+      top: -3px;
+      bottom: -3px;
       width: 0px;
       pointer-events: none;
       z-index: 2;
@@ -784,8 +925,8 @@
       bottom: 0;
       left: 0;
       width: 2px;
-      background: #f8fafc;
-      box-shadow: 0 0 6px #38bdf8, 0 0 12px rgba(56, 189, 248, 0.6);
+      background: #ffffff;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
       border-radius: 1px;
     }
 
@@ -794,14 +935,12 @@
       top: -2px;
       left: 50%;
       transform: translateX(-50%);
-      width: 8px;
-      height: 6px;
-      background: #38bdf8;
+      width: 6px;
+      height: 5px;
+      background: #ffffff;
       clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
-      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
     }
 
-    /* Invisible overlay input range */
     .playhead-slider {
       position: absolute;
       top: 0;
@@ -812,24 +951,6 @@
       cursor: pointer;
       margin: 0;
       z-index: 3;
-    }
-
-    .canvas-telemetry {
-      position: absolute;
-      bottom: 74px;
-      left: 16px;
-      background: rgba(11, 15, 25, 0.94);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--border-subtle);
-      border-radius: 20px;
-      padding: 5px 12px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 11px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      z-index: 5;
     }
 
     @media (max-width: 1240px) {
@@ -852,30 +973,26 @@
       .timeline-layer-chip {
         max-width: 100px;
       }
-      .hoop-alert-chip {
-        font-size: 10px;
-        padding: 3px 10px;
-      }
     }
 
     @media (max-width: 900px) {
-      .timeline-layer-chip {
-        display: none;
-      }
-      .speed-label {
+      .timeline-layer-chip, .speed-label {
         display: none;
       }
     }
 
-    /* Right Sidebar: Stitch Parameters & Machine Stats */
+    /* -------------------------------------------------------------
+       Right Sidebar: Stitch Parameters & Machine Stats
+       ------------------------------------------------------------- */
     .sidebar-right {
-      background: var(--bg-panel);
-      border-left: 1px solid var(--border-subtle);
+      background: var(--geist-background);
+      border-left: 1px solid var(--accents-2);
       display: flex;
       flex-direction: column;
       overflow-x: hidden;
       overflow-y: auto;
       min-width: 0;
+      z-index: 10;
     }
 
     .form-group {
@@ -887,82 +1004,92 @@
 
     .form-label {
       font-size: 12px;
-      font-weight: 600;
-      color: var(--text-primary);
+      font-weight: 500;
+      color: var(--accents-6);
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
 
     .form-value {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--accent-blue);
+      font-weight: 600;
+      color: var(--accents-8);
     }
 
-    select, input[type="range"] {
+    /* Vercel Hairline Slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
       width: 100%;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--accents-2);
+      outline: none;
+      cursor: pointer;
+      margin: 8px 0;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accents-8);
+      border: 2px solid var(--geist-background);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
     }
 
     select {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-primary);
-      padding: 8px 10px;
+      width: 100%;
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
+      color: var(--accents-8);
+      padding: 7px 10px;
       border-radius: 6px;
-      font-size: 13px;
-      font-family: inherit;
+      font-size: 12px;
+      font-family: var(--font-sans);
+      outline: none;
+      cursor: pointer;
     }
-
-    .stats-card {
-      margin: 16px;
-      padding: 14px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .stat-num {
-      font-family: var(--font-mono);
-      font-size: 17px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .stat-label {
-      font-size: 10.5px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    select:focus {
+      border-color: var(--accents-4);
     }
 
     .hint-box {
-      margin: 0 16px 16px;
-      padding: 10px 12px;
-      background: rgba(14, 165, 233, 0.08);
-      border: 1px solid rgba(14, 165, 233, 0.2);
-      border-radius: 6px;
+      margin: 16px;
+      padding: 12px;
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
+      border-radius: 8px;
       font-size: 11.5px;
-      color: #93c5fd;
+      color: var(--accents-6);
       line-height: 1.5;
     }
+    .hint-box strong {
+      color: var(--accents-8);
+    }
 
-    /* Modal Overlay & Diagnostics Card */
+    /* -------------------------------------------------------------
+       Modal Overlays & Cards (Vercel Machined Spec)
+       ------------------------------------------------------------- */
     .modal-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.78);
       backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -970,16 +1097,22 @@
     }
 
     .modal-card {
-      background: #1e293b;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: var(--geist-background);
+      border: 1px solid var(--accents-2);
       border-radius: 12px;
-      width: 620px;
+      width: 640px;
       max-width: 90vw;
       max-height: 85vh;
       overflow-y: auto;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      box-shadow: var(--shadow-modal);
       display: flex;
       flex-direction: column;
+    }
+
+    .modal-card-lg {
+      width: 960px;
+      max-width: 95vw;
+      max-height: 90vh;
     }
 
     .modal-header {
@@ -987,8 +1120,8 @@
       align-items: center;
       justify-content: space-between;
       padding: 16px 20px;
-      border-bottom: 1px solid var(--border-subtle);
-      background: rgba(15, 23, 42, 0.6);
+      border-bottom: 1px solid var(--accents-2);
+      background: var(--geist-background);
     }
 
     .modal-body {
@@ -998,17 +1131,26 @@
       gap: 16px;
     }
 
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-top: 1px solid var(--accents-2);
+      background: var(--geist-background);
+    }
+
     .diag-box {
-      background: #0f172a;
-      border: 1px solid var(--border-subtle);
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
       border-radius: 8px;
       padding: 12px 16px;
     }
 
     .diag-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accents-6);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin-bottom: 8px;
@@ -1018,40 +1160,33 @@
     }
 
     .badge-pass {
-      background: rgba(34, 197, 94, 0.15);
-      color: #4ade80;
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 8px;
+      background: rgba(0, 112, 243, 0.12);
+      color: #3291ff;
+      border: 1px solid rgba(0, 112, 243, 0.3);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
       border-radius: 4px;
     }
 
     .badge-alert {
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 8px;
+      background: rgba(238, 0, 0, 0.12);
+      color: #ff4d4f;
+      border: 1px solid rgba(238, 0, 0, 0.3);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
       border-radius: 4px;
     }
 
-    /* Import Artwork Modal Styles */
-    .modal-card-lg {
-      width: 940px;
-      max-width: 95vw;
-      max-height: 90vh;
-    }
-
     .dropzone {
-      border: 2px dashed rgba(14, 165, 233, 0.4);
-      background: rgba(14, 165, 233, 0.04);
-      border-radius: 10px;
-      padding: 18px 20px;
+      border: 1px dashed var(--accents-3);
+      background: var(--accents-1);
+      border-radius: 8px;
+      padding: 20px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -1060,62 +1195,56 @@
     }
 
     .dropzone:hover, .dropzone.dragover {
-      border-color: var(--accent-blue);
-      background: rgba(14, 165, 233, 0.12);
-      transform: translateY(-1px);
-    }
-
-    .dropzone-icon {
-      font-size: 26px;
+      border-color: var(--accents-5);
+      background: #141414;
     }
 
     .dropzone-title {
-      font-size: 13.5px;
-      font-weight: 700;
-      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accents-8);
     }
 
     .dropzone-sub {
       font-size: 11px;
-      color: var(--text-muted);
+      color: var(--accents-6);
     }
 
     .sample-pill-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       margin-top: 4px;
       flex-wrap: wrap;
     }
 
     .sample-pill {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--border-subtle);
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
       border-radius: 20px;
       padding: 4px 12px;
-      font-size: 11.5px;
-      font-weight: 600;
-      color: var(--text-primary);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--accents-6);
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.15s;
+      transition: all 0.12s;
     }
 
     .sample-pill:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.25);
-      transform: translateY(-1px);
+      background: var(--accents-2);
+      color: var(--accents-8);
+      border-color: var(--accents-3);
     }
 
     .sample-pill.active {
-      background: rgba(244, 63, 94, 0.2);
-      border-color: var(--accent-pink);
-      color: #fda4af;
+      background: var(--accents-2);
+      border-color: var(--accents-4);
+      color: var(--accents-8);
     }
 
-    /* 3-Pane Preview Grid */
     .preview-tri-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -1123,8 +1252,8 @@
     }
 
     .preview-col {
-      background: #0b0f19;
-      border: 1px solid var(--border-subtle);
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
       border-radius: 8px;
       padding: 10px;
       display: flex;
@@ -1137,29 +1266,28 @@
       align-items: center;
       justify-content: space-between;
       font-size: 10.5px;
-      font-weight: 700;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--text-muted);
+      color: var(--accents-5);
     }
 
     .preview-canvas-wrap {
       height: 170px;
-      background: #070a12;
+      background: #000000;
       border-radius: 6px;
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--accents-2);
     }
 
     .preview-canvas-wrap canvas, .preview-canvas-wrap img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
-      image-rendering: auto;
     }
 
     .palette-chips-wrap {
@@ -1175,19 +1303,19 @@
       align-items: center;
       gap: 8px;
       padding: 4px 8px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border-subtle);
+      background: var(--geist-background);
+      border: 1px solid var(--accents-2);
       border-radius: 4px;
       font-size: 10.5px;
       font-family: var(--font-mono);
     }
 
     .palette-color-swatch {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
       flex-shrink: 0;
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .palette-thread-name {
@@ -1195,11 +1323,11 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #e2e8f0;
+      color: var(--accents-7);
     }
 
     .palette-thread-pct {
-      color: var(--text-muted);
+      color: var(--accents-5);
       font-size: 9.5px;
     }
 
@@ -1207,19 +1335,50 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
-      background: #0f172a;
-      border: 1px solid var(--border-subtle);
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
       border-radius: 8px;
       padding: 12px 14px;
     }
 
-    .modal-footer {
+    /* Export Dropdown Menu */
+    .export-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--geist-background);
+      border: 1px solid var(--accents-2);
+      border-radius: 8px;
+      box-shadow: var(--shadow-modal);
+      min-width: 260px;
+      z-index: 999;
+      padding: 6px;
+    }
+
+    .export-option-item {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 20px;
-      border-top: 1px solid var(--border-subtle);
-      background: rgba(15, 23, 42, 0.8);
+      cursor: pointer;
+      color: var(--geist-foreground);
+      text-align: left;
+      transition: background 0.12s ease;
+      font-family: inherit;
+    }
+
+    .export-option-item:hover {
+      background: var(--accents-1) !important;
+      color: var(--accents-8);
+    }
+
+    .export-option-item:active {
+      transform: scale(0.985);
     }
   </style>
 </head>
@@ -1232,7 +1391,7 @@
         <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M8 3v18M16 3v18M8 8h8M8 12h8M8 16h8"/></svg>
       </div>
       <span>EmbroideryTrace Studio</span>
-      <span class="brand-tag">v1.9 Core</span>
+      <span class="brand-tag">v2.0 Geist</span>
     </div>
 
     <div class="header-actions">
@@ -1244,18 +1403,23 @@
         <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
         <span>Redo</span>
       </button>
-      <button class="btn btn-pink" id="btnOpenImport" title="Import raster artwork (PNG, JPG, WebP) and trace to embroidery">
+      <div style="width:1px;height:16px;background:var(--accents-2);margin:0 4px;"></div>
+      <button class="btn" id="btnOpenImport" title="Import raster artwork (PNG, JPG, WebP) and trace to embroidery">
         <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
         <span>Import Artwork</span>
       </button>
+      <button class="btn" id="btnHeaderLettering" title="Add typography and satin lettering">
+        <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        <span>Add Lettering</span>
+      </button>
       <div class="export-dropdown-wrapper" id="exportDropdownWrapper" style="position:relative;display:inline-block;">
-        <button class="btn btn-primary" id="btnExportDropdownToggle" style="gap:7px;font-weight:700;padding:7px 14px;">
+        <button class="btn btn-primary" id="btnExportDropdownToggle">
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>Export Embroidery</span>
           <svg class="svg-icon" viewBox="0 0 24 24" id="exportChevron" style="width:11px;height:11px;transition:transform 0.15s ease;"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="export-dropdown-menu" id="exportDropdownMenu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#0b0f19;border:1px solid var(--border-subtle);border-radius:8px;box-shadow:0 16px 36px rgba(0,0,0,0.7),0 4px 12px rgba(0,0,0,0.5);min-width:260px;z-index:999;padding:6px;">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.06em;padding:6px 10px 6px 10px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">Commercial Embroidery Formats</div>
+        <div class="export-dropdown-menu" id="exportDropdownMenu">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;padding:6px 10px;border-bottom:1px solid var(--accents-2);margin-bottom:4px;">Commercial Embroidery Formats</div>
           
           <button class="export-option-item" id="exportDstBtn" style="width:100%;background:transparent;border:none;border-radius:6px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;color:#f8fafc;text-align:left;transition:background 0.15s ease;">
             <div style="display:flex;align-items:center;gap:9px;">
@@ -1308,28 +1472,28 @@
     <!-- Left Column: Layers & Designs -->
     <aside class="sidebar-left">
       <div class="section-title">Design Presets</div>
-      <div class="preset-selector" style="display:flex;gap:6px;padding:0 16px 12px;flex-wrap:wrap;">
-        <button class="btn" id="presetDaisy" style="flex:1;">
+      <div class="preset-selector">
+        <button class="btn active" id="presetDaisy">
           <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2a3 3 0 0 0-3 3c0 2 3 4 3 4s3-2 3-4a3 3 0 0 0-3-3z"/><path d="M12 22a3 3 0 0 0 3-3c0-2-3-4-3-4s-3 2-3 4a3 3 0 0 0 3 3z"/><path d="M2 12a3 3 0 0 0 3 3c2 0 4-3 4-3s-2-3-4-3a3 3 0 0 0-3 3z"/><path d="M22 12a3 3 0 0 0-3-3c-2 0-4 3-4 3s2 3 4 3a3 3 0 0 0 3-3z"/></svg>
           <span>Daisy</span>
         </button>
-        <button class="btn" id="presetMono" style="flex:1;">
+        <button class="btn" id="presetMono">
           <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-          <span>Monogram</span>
+          <span>Mono</span>
         </button>
-        <button class="btn" id="presetCrest" style="flex:1;">
+        <button class="btn" id="presetCrest">
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>Crest Badge</span>
+          <span>Crest</span>
         </button>
       </div>
-      <div style="padding:0 16px 12px;display:flex;flex-direction:column;gap:6px;">
-        <button class="btn btn-pink" id="btnSidebarImport" style="width:100%;justify-content:center;gap:8px;font-size:12px;padding:8px 10px;">
-          <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-          <span>Trace Image (PNG/JPG)...</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 16px 12px;">
+        <button class="btn" id="btnSidebarImport" style="justify-content:center;font-size:11px;padding:4px 6px;">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          <span>Import</span>
         </button>
-        <button class="btn" id="btnSidebarLettering" style="width:100%;justify-content:center;gap:8px;font-size:12px;padding:8px 10px;background:rgba(14,165,233,0.12);border-color:rgba(14,165,233,0.4);color:#38bdf8;">
-          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-          <span>Add Lettering...</span>
+        <button class="btn" id="btnSidebarLettering" style="justify-content:center;font-size:11px;padding:4px 6px;">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+          <span>Lettering</span>
         </button>
       </div>
 
@@ -1841,20 +2005,20 @@
             <div style="font-size:11px;color:#94a3b8;">Satin Columns, Tatami Blocks & Arc Warping</div>
           </div>
         </div>
-        <button id="closeLetteringBtn" class="btn" style="padding:4px 8px;font-size:14px;background:none;border:none;color:#94a3b8;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
+        <button id="closeLetteringBtn" class="btn" style="padding:4px 8px;font-size:14px;background:none;border:none;color:var(--accents-5);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
           <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;padding:16px 20px;">
         <div>
-          <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;display:block;margin-bottom:6px;">Text Content</label>
-          <input type="text" id="letteringTextInput" value="ATHLETIC 26" style="width:100%;padding:8px 12px;background:#0b0f19;border:1px solid var(--border-subtle);border-radius:6px;color:#f8fafc;font-size:14px;font-weight:700;" placeholder="Enter lettering text..." />
+          <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;display:block;margin-bottom:6px;">Text Content</label>
+          <input type="text" id="letteringTextInput" value="ATHLETIC 26" style="width:100%;font-size:13px;font-weight:600;" placeholder="Enter lettering text..." />
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div>
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;display:block;margin-bottom:6px;">Font Style</label>
-            <select id="letteringFontSelect" style="width:100%;padding:8px;background:#0b0f19;border:1px solid var(--border-subtle);border-radius:6px;color:#f8fafc;font-size:12px;">
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;display:block;margin-bottom:6px;">Font Style</label>
+            <select id="letteringFontSelect">
               <option value="varsity">Collegiate Varsity / Block</option>
               <option value="sans">Modern Sans-Serif</option>
               <option value="serif">Heritage Classic Serif</option>
@@ -1863,8 +2027,8 @@
             </select>
           </div>
           <div>
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;display:block;margin-bottom:6px;">Stitch Style</label>
-            <select id="letteringStitchSelect" style="width:100%;padding:8px;background:#0b0f19;border:1px solid var(--border-subtle);border-radius:6px;color:#f8fafc;font-size:12px;">
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;display:block;margin-bottom:6px;">Stitch Style</label>
+            <select id="letteringStitchSelect">
               <option value="satin">Satin Border / Column</option>
               <option value="tatami">Tatami Solid Fill</option>
               <option value="twill">Twill Diagonal Weave</option>
@@ -1876,15 +2040,15 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div>
             <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;">Height (mm)</label>
-              <span id="letteringHeightVal" style="font-size:11px;color:#38bdf8;font-weight:700;">20 mm</span>
+              <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;">Height (mm)</label>
+              <span id="letteringHeightVal" style="font-size:11px;color:var(--accents-8);font-family:var(--font-mono);font-weight:600;">20 mm</span>
             </div>
             <input type="range" id="letteringHeightInput" min="8" max="50" value="20" step="1" style="width:100%;" />
           </div>
           <div>
             <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;">Arc Curve (°)</label>
-              <span id="letteringArcVal" style="font-size:11px;color:#38bdf8;font-weight:700;">0°</span>
+              <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;">Arc Curve (°)</label>
+              <span id="letteringArcVal" style="font-size:11px;color:var(--accents-8);font-family:var(--font-mono);font-weight:600;">0°</span>
             </div>
             <input type="range" id="letteringArcInput" min="-60" max="60" value="0" step="5" style="width:100%;" />
           </div>
@@ -1892,8 +2056,8 @@
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div>
-            <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.05em;display:block;margin-bottom:6px;">Thread Color</label>
-            <select id="letteringColorSelect" style="width:100%;padding:8px;background:#0b0f19;border:1px solid var(--border-subtle);border-radius:6px;color:#f8fafc;font-size:12px;">
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;display:block;margin-bottom:6px;">Thread Color</label>
+            <select id="letteringColorSelect">
               <option value="#f8fafc|Madeira 1001 (Pure White)">Madeira Pure White (#f8fafc)</option>
               <option value="#f59e0b|Madeira 1064 (Gold)">Madeira Gold (#f59e0b)</option>
               <option value="#ef4444|Madeira 1184 (Crimson Red)">Madeira Crimson Red (#ef4444)</option>
@@ -1904,7 +2068,7 @@
             </select>
           </div>
           <div style="display:flex;align-items:flex-end;">
-            <button id="btnGenerateLettering" class="btn btn-primary" style="width:100%;padding:8px 14px;font-size:12.5px;font-weight:700;justify-content:center;display:inline-flex;align-items:center;gap:6px;">
+            <button id="btnGenerateLettering" class="btn btn-primary" style="width:100%;padding:8px 14px;font-size:12.5px;font-weight:500;justify-content:center;display:inline-flex;align-items:center;gap:6px;">
               <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span>Add Lettering Layer</span>
             </button>

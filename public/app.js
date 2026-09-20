@@ -440,41 +440,41 @@ function updateLayersUI() {
 
     const islandCount = layer.getPolygons ? layer.getPolygons().length : 1;
     const islandBadge = islandCount > 1
-      ? `<span class="badge" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;margin-right:4px;font-size:9.5px;">${islandCount} isl</span>`
+      ? `<span class="badge mono" style="background:var(--accents-1);color:var(--accents-6);border:1px solid var(--accents-2);margin-right:4px;font-size:9px;">${islandCount} isl</span>`
       : '';
 
     const colorDot = `<span class="color-badge" style="background:${layer.hex};flex-shrink:0;"></span>`;
     card.style.opacity = layer.hidden ? '0.45' : '1';
     card.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;width:100%;">
-        <div style="display:flex;align-items:center;gap:5px;min-width:0;flex:1;">
-          <span class="drag-handle" title="Drag to reorder stitch sequence" style="cursor:grab;color:var(--text-muted);display:inline-flex;align-items:center;padding:2px 0;user-select:none;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
+          <span class="drag-handle" title="Drag to reorder stitch sequence" style="cursor:grab;color:var(--accents-5);display:inline-flex;align-items:center;padding:2px 0;user-select:none;flex-shrink:0;">
             <svg class="svg-icon" viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor;stroke:none;"><circle cx="8" cy="5" r="1.5"/><circle cx="16" cy="5" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg>
           </span>
 
-          <button class="layer-visibility-btn" data-idx="${idx}" title="${layer.hidden ? 'Show layer on canvas' : 'Hide layer from canvas'}" style="background:${layer.hidden ? 'rgba(239,68,68,0.12)' : 'transparent'};border:1px solid ${layer.hidden ? 'rgba(239,68,68,0.3)' : 'transparent'};border-radius:4px;color:${layer.hidden ? '#ef4444' : 'var(--text-muted)'};cursor:pointer;padding:2px 3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease;">
+          <button class="layer-visibility-btn" data-idx="${idx}" title="${layer.hidden ? 'Show layer on canvas' : 'Hide layer from canvas'}" style="background:${layer.hidden ? 'rgba(238,0,0,0.12)' : 'transparent'};border:1px solid ${layer.hidden ? 'rgba(238,0,0,0.3)' : 'transparent'};border-radius:4px;color:${layer.hidden ? 'var(--accent-error)' : 'var(--accents-5)'};cursor:pointer;padding:2px 3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease;">
             ${layer.hidden
               ? `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
               : `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`
             }
           </button>
 
-          <span style="font-size:10px;font-weight:800;color:var(--text-muted);min-width:16px;flex-shrink:0;">#${idx + 1}</span>
+          <span style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--accents-5);min-width:16px;flex-shrink:0;">#${idx + 1}</span>
           ${colorDot}
           <div style="min-width:0;flex:1;overflow:hidden;">
-            <div style="font-weight:700;font-size:12px;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${layer.name}</div>
-            <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${layer.threadCode}</div>
+            <div style="font-weight:500;font-size:12px;color:var(--accents-8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${layer.name}</div>
+            <div style="font-size:10px;color:var(--accents-6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${layer.threadCode}</div>
           </div>
         </div>
 
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
           ${islandBadge}
-          <span class="badge" style="font-size:9.5px;">${layer.stitchType.toUpperCase()}</span>
+          <span class="badge mono" style="font-size:9.5px;text-transform:uppercase;background:var(--geist-background);border:1px solid var(--accents-2);color:var(--accents-6);">${layer.stitchType}</span>
           <div class="layer-order-btns" style="display:flex;flex-direction:column;gap:1px;margin-left:2px;">
-            <button class="order-btn btn-up" data-idx="${idx}" title="Move earlier in embroidery sequence" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === 0 ? 'opacity:0.2;cursor:default;' : ''}">
+            <button class="order-btn btn-up" data-idx="${idx}" title="Move earlier in embroidery sequence" style="background:transparent;border:none;color:var(--accents-5);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === 0 ? 'opacity:0.2;cursor:default;' : ''}">
               <svg class="svg-icon" viewBox="0 0 24 24" style="width:9px;height:9px;"><polyline points="18 15 12 9 6 15"/></svg>
             </button>
-            <button class="order-btn btn-down" data-idx="${idx}" title="Move later in embroidery sequence" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === engine.layers.length - 1 ? 'opacity:0.2;cursor:default;' : ''}">
+            <button class="order-btn btn-down" data-idx="${idx}" title="Move later in embroidery sequence" style="background:transparent;border:none;color:var(--accents-5);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === engine.layers.length - 1 ? 'opacity:0.2;cursor:default;' : ''}">
               <svg class="svg-icon" viewBox="0 0 24 24" style="width:9px;height:9px;"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
           </div>
@@ -681,7 +681,7 @@ function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Fabric Background (Subtle weave grid)
-  ctx.fillStyle = '#0f172a';
+  ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw millimeter grid (10mm major / 1mm minor)
@@ -708,45 +708,51 @@ function render() {
     for (let i = 1; i < maxIdx; i++) {
       const curr = stitches[i];
       const layer = engine.layers[curr.colorIndex] || engine.layers[0];
-      const prevLayer = engine.layers[prev.colorIndex] || engine.layers[0];
+      const hex = layer.hex;
 
-      if (layer && layer.hidden) {
-        prev = curr;
-        continue;
-      }
-      if (prevLayer && prevLayer.hidden) {
-        prev = curr;
-        continue;
-      }
-
-      if (curr.command === StitchCommand.JUMP) {
-        // Dotted travel jump line
+      // Realistic 3-Pass Thread Rendering Pipeline
+      if (curr.command === StitchCommand.END) {
+        break;
+      } else if (curr.command === StitchCommand.COLOR_CHANGE) {
+        // Color change handled seamlessly by layer index
+      } else if (curr.command === StitchCommand.TRIM) {
+        // Needle raised - thread trimmed
+      } else if (curr.command === StitchCommand.JUMP) {
+        // Non-sewing rapid travel jump line (fine dashed line)
         ctx.save();
         ctx.beginPath();
-        ctx.setLineDash([1.0, 1.5]);
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-        ctx.lineWidth = 0.15;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 0.08;
+        ctx.setLineDash([0.5, 0.5]);
         ctx.moveTo(prev.x, prev.y);
         ctx.lineTo(curr.x, curr.y);
         ctx.stroke();
         ctx.restore();
-      } else if (curr.command === StitchCommand.STITCH) {
+      } else {
+        // Regular SEW stitch
         const dx = curr.x - prev.x;
         const dy = curr.y - prev.y;
         const len = Math.hypot(dx, dy);
 
-        // Realistic Thread Body: Base shade
+        // Pass 1: Under-stitch ambient occlusion / shadow
         ctx.beginPath();
-        ctx.strokeStyle = layer ? layer.hex : '#38bdf8';
-        ctx.lineWidth = 0.36; // ~0.36mm standard 40wt embroidery thread width
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.lineWidth = 0.42;
         ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        ctx.moveTo(prev.x + 0.05, prev.y + 0.08);
+        ctx.lineTo(curr.x + 0.05, curr.y + 0.08);
+        ctx.stroke();
+
+        // Pass 2: Base saturated thread filament core
+        ctx.beginPath();
+        ctx.strokeStyle = hex;
+        ctx.lineWidth = 0.36;
+        ctx.lineCap = 'round';
         ctx.moveTo(prev.x, prev.y);
         ctx.lineTo(curr.x, curr.y);
         ctx.stroke();
 
-        // 3D Thread Arch Highlight (central 70% sheen)
-        // Distinctly reveals stitch intervals & twill stagger pitch (0.25 diagonal grain)
+        // Pass 3: Specular cylindrical sheen highlight along thread spine
         if (len > 0.4) {
           const mx1 = prev.x + dx * 0.15;
           const my1 = prev.y + dy * 0.15;
@@ -773,7 +779,7 @@ function render() {
         // Deep needle hole center
         ctx.beginPath();
         ctx.arc(curr.x, curr.y, 0.11, 0, Math.PI * 2);
-        ctx.fillStyle = '#020617';
+        ctx.fillStyle = '#000000';
         ctx.fill();
         ctx.restore();
       }
@@ -787,7 +793,7 @@ function render() {
       const head = stitches[headIdx];
       const prevStitch = headIdx > 0 ? stitches[headIdx - 1] : head;
       const headLayer = engine.layers[head.colorIndex] || engine.layers[0];
-      const needleHex = headLayer ? headLayer.hex : '#38bdf8';
+      const needleHex = headLayer ? headLayer.hex : '#0070f3';
 
       // Screen-invariant CAD sizing (stays clear and readable at all scales)
       const reticleR = Math.max(1.2, 14 / scale);
@@ -799,9 +805,9 @@ function render() {
 
       // 1. Soft radial radar glow under needle
       const glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, reticleR * 1.5);
-      glowGrad.addColorStop(0, 'rgba(56, 189, 248, 0.28)');
-      glowGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.08)');
-      glowGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      glowGrad.addColorStop(0, 'rgba(0, 112, 243, 0.28)');
+      glowGrad.addColorStop(0.6, 'rgba(0, 112, 243, 0.08)');
+      glowGrad.addColorStop(1, 'rgba(0, 112, 243, 0)');
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
       ctx.arc(0, 0, reticleR * 1.5, 0, Math.PI * 2);
@@ -811,14 +817,14 @@ function render() {
       ctx.beginPath();
       ctx.setLineDash([reticleR * 0.4, reticleR * 0.2]);
       ctx.arc(0, 0, reticleR, 0, Math.PI * 2);
-      ctx.strokeStyle = '#38bdf8';
+      ctx.strokeStyle = '#0070f3';
       ctx.lineWidth = strokeW;
       ctx.stroke();
 
       // 3. Fine Cardinal Crosshairs
       ctx.setLineDash([]);
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+      ctx.strokeStyle = 'rgba(0, 112, 243, 0.7)';
       ctx.lineWidth = strokeW * 0.8;
       // Top tick
       ctx.moveTo(0, -reticleR * 0.5);
@@ -839,15 +845,15 @@ function render() {
       // Dark fabric puncture hole shadow
       ctx.beginPath();
       ctx.arc(0, 0, needlePointR * 1.25, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
       ctx.fill();
 
       // Steel needle tip bevel
       ctx.beginPath();
       ctx.arc(0, 0, needlePointR, 0, Math.PI * 2);
-      ctx.fillStyle = '#f8fafc';
+      ctx.fillStyle = '#fafafa';
       ctx.fill();
-      ctx.strokeStyle = '#020617';
+      ctx.strokeStyle = '#000000';
       ctx.lineWidth = strokeW * 0.6;
       ctx.stroke();
 
@@ -861,18 +867,18 @@ function render() {
       const flagX = crosshairExt + (2 / scale);
       const flagY = -crosshairExt;
       const fontSize = Math.max(0.75, 8.5 / scale);
-      ctx.font = `600 ${fontSize}px "JetBrains Mono", monospace`;
+      ctx.font = `600 ${fontSize}px "Geist Mono", "JetBrains Mono", monospace`;
 
       const dist = Math.hypot(head.x - prevStitch.x, head.y - prevStitch.y);
       let cmdLabel = `STITCH ${dist.toFixed(1)}mm`;
-      let cmdBg = 'rgba(56, 189, 248, 0.92)';
-      let cmdColor = '#0b0f19';
+      let cmdBg = 'rgba(0, 112, 243, 0.95)';
+      let cmdColor = '#ffffff';
       if (head.command === StitchCommand.JUMP) {
         cmdLabel = `JUMP ${dist.toFixed(1)}mm`;
-        cmdBg = 'rgba(245, 158, 11, 0.92)';
+        cmdBg = 'rgba(245, 166, 35, 0.95)';
       } else if (head.command === StitchCommand.COLOR_CHANGE) {
         cmdLabel = 'COLOR STOP';
-        cmdBg = 'rgba(168, 85, 247, 0.92)';
+        cmdBg = 'rgba(121, 40, 202, 0.95)';
       } else if (head.command === StitchCommand.TRIM) {
         cmdLabel = 'TRIM';
         cmdBg = 'rgba(244, 63, 94, 0.92)';
@@ -2588,6 +2594,7 @@ window.addEventListener('resize', resizeCanvas);
 
 // Typography Lettering Modal Event Handlers
 const btnSidebarLettering = document.getElementById('btnSidebarLettering');
+const btnHeaderLettering = document.getElementById('btnHeaderLettering');
 const letteringModal = document.getElementById('letteringModal');
 const closeLetteringBtn = document.getElementById('closeLetteringBtn');
 const letteringHeightInput = document.getElementById('letteringHeightInput');
@@ -2596,10 +2603,17 @@ const letteringArcInput = document.getElementById('letteringArcInput');
 const letteringArcVal = document.getElementById('letteringArcVal');
 const btnGenerateLettering = document.getElementById('btnGenerateLettering');
 
-if (btnSidebarLettering && letteringModal) {
-  btnSidebarLettering.onclick = () => {
-    letteringModal.style.display = 'flex';
-  };
+if (letteringModal) {
+  if (btnSidebarLettering) {
+    btnSidebarLettering.onclick = () => {
+      letteringModal.style.display = 'flex';
+    };
+  }
+  if (btnHeaderLettering) {
+    btnHeaderLettering.onclick = () => {
+      letteringModal.style.display = 'flex';
+    };
+  }
   if (closeLetteringBtn) {
     closeLetteringBtn.onclick = () => {
       letteringModal.style.display = 'none';

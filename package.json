@@ -1,6 +1,6 @@
 {
   "name": "embroidery-trace-engine",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Browser-first AI embroidery digitizing engine: SVG/vector to Satin, Tatami, Twill, and Tajima DST machine exporter",
   "type": "module",
   "main": "src/index.js",
