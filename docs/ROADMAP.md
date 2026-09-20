@@ -18,7 +18,13 @@ This document outlines the strategic roadmap and release milestones for the Artw
 
 ## ✅ Completed Milestones
 
-### v1.6.0 (Current Release) — Typography, Layer Sequencing & Non-Destructive Stitch Switching
+### v1.7.0 (Current Release) — UI/UX Overhaul & Zero-Emoji Vector Icon System
+- [x] **OLED Industrial Design System Tokens:** Configured dark theme palette (`#090d16` canvas, `#0f172a` surface), Doppelrand border insets, typography scales, and spring physics micro-interactions (`transform: scale(0.975)`).
+- [x] **Comprehensive Zero-Emoji Vector Icon Library:** Replaced all emojis across entire UI with unified inline vector SVGs (1.75px stroke, rounded terminals, `currentColor`).
+- [x] **Layer Visibility Toggling:** Non-destructive per-layer eye/eye-off toggle integrated into sequence manager and canvas render loop.
+- [x] **160/160 Tests Passing:** Complete test suite passing with 0 regressions.
+
+### v1.6.0 — Typography, Layer Sequencing & Non-Destructive Stitch Switching
 - [x] **Non-Destructive Geometry Architecture (`src/stitches/types.js` & `src/engine.js`):** `ColorLayer.baseGeometry` stores pristine original vector contours. Switching layers back and forth between `TATAMI`, `SATIN`, `RUNNING`, `SPIRAL`, `MEANDER`, and `TWILL` derives new stitch representations without corrupting or degrading original shape volumes. Verified across 6-hop stress cycles.
 - [x] **Draggable Layer Construction Sequencing (`public/app.js` & `public/index.html`):** Drag handles (`⠿`), direct HTML5 drag-and-drop, and `▲`/`▼` quick reorder buttons in `#layersContainer`. Directly controls `engine.layers` order, machine stitching construction sequence (underlay vs top details), and export color change stops. Full Undo/Redo support.
 - [x] **In-Canvas Typography & Satin Lettering Engine (`src/typography/lettering.js`):** High-resolution canvas/bitmap vectorizer with inner hole detection (`A`, `B`, `O`), baseline arc warping ($-60^\circ$ to $+60^\circ$), auto-spacing, and instant satin/tatami layer generation.

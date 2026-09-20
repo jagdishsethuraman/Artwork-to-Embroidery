@@ -430,27 +430,51 @@ function updateLayersUI() {
       : '';
 
     const colorDot = `<span class="color-badge" style="background:${layer.hex};"></span>`;
+    card.style.opacity = layer.hidden ? '0.45' : '1';
     card.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:6px;">
-          <span class="drag-handle" title="Drag to reorder stitch sequence" style="cursor:grab;color:#64748b;font-size:13px;padding:2px 2px;user-select:none;">⠿</span>
-          <span style="font-size:10px;font-weight:800;color:#64748b;min-width:18px;">#${idx + 1}</span>
+          <span class="drag-handle" title="Drag to reorder stitch sequence" style="cursor:grab;color:var(--text-muted);display:inline-flex;align-items:center;padding:2px;user-select:none;">
+            <svg class="svg-icon" viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor;stroke:none;"><circle cx="8" cy="5" r="1.5"/><circle cx="16" cy="5" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg>
+          </span>
+          <span style="font-size:10px;font-weight:800;color:var(--text-muted);min-width:18px;">#${idx + 1}</span>
           ${colorDot}
           <div>
-            <div style="font-weight:700;font-size:12.5px;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;">${layer.name}</div>
-            <div style="font-size:10px;color:#94a3b8;">${layer.threadCode}</div>
+            <div style="font-weight:700;font-size:12.5px;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:115px;">${layer.name}</div>
+            <div style="font-size:10px;color:var(--text-muted);">${layer.threadCode}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:3px;">
           ${islandBadge}
           <span class="badge" style="font-size:9.5px;">${layer.stitchType.toUpperCase()}</span>
-          <div class="layer-order-btns" style="display:flex;flex-direction:column;gap:1px;margin-left:3px;">
-            <button class="order-btn btn-up" data-idx="${idx}" title="Move earlier in embroidery sequence" style="background:transparent;border:none;color:#94a3b8;font-size:9px;cursor:pointer;padding:1px 2px;line-height:1;${idx === 0 ? 'opacity:0.2;cursor:default;' : ''}">▲</button>
-            <button class="order-btn btn-down" data-idx="${idx}" title="Move later in embroidery sequence" style="background:transparent;border:none;color:#94a3b8;font-size:9px;cursor:pointer;padding:1px 2px;line-height:1;${idx === engine.layers.length - 1 ? 'opacity:0.2;cursor:default;' : ''}">▼</button>
+          <button class="layer-visibility-btn" data-idx="${idx}" title="${layer.hidden ? 'Show layer' : 'Hide layer'}" style="background:transparent;border:none;color:${layer.hidden ? '#64748b' : 'var(--text-secondary)'};cursor:pointer;padding:2px 3px;display:inline-flex;align-items:center;justify-content:center;">
+            ${layer.hidden
+              ? `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+              : `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+            }
+          </button>
+          <div class="layer-order-btns" style="display:flex;flex-direction:column;gap:1px;margin-left:2px;">
+            <button class="order-btn btn-up" data-idx="${idx}" title="Move earlier in embroidery sequence" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === 0 ? 'opacity:0.2;cursor:default;' : ''}">
+              <svg class="svg-icon" viewBox="0 0 24 24" style="width:9px;height:9px;"><polyline points="18 15 12 9 6 15"/></svg>
+            </button>
+            <button class="order-btn btn-down" data-idx="${idx}" title="Move later in embroidery sequence" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === engine.layers.length - 1 ? 'opacity:0.2;cursor:default;' : ''}">
+              <svg class="svg-icon" viewBox="0 0 24 24" style="width:9px;height:9px;"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
           </div>
         </div>
       </div>
     `;
+
+    // Click handler for visibility button
+    const btnVis = card.querySelector('.layer-visibility-btn');
+    if (btnVis) {
+      btnVis.onclick = (e) => {
+        e.stopPropagation();
+        layer.hidden = !layer.hidden;
+        updateLayersUI();
+        render();
+      };
+    }
 
     // Click handlers for up/down buttons
     const btnUp = card.querySelector('.btn-up');
@@ -547,6 +571,16 @@ function render() {
     for (let i = 1; i < maxIdx; i++) {
       const curr = stitches[i];
       const layer = engine.layers[curr.colorIndex] || engine.layers[0];
+      const prevLayer = engine.layers[prev.colorIndex] || engine.layers[0];
+
+      if (layer && layer.hidden) {
+        prev = curr;
+        continue;
+      }
+      if (prevLayer && prevLayer.hidden) {
+        prev = curr;
+        continue;
+      }
 
       if (curr.command === StitchCommand.JUMP) {
         // Dotted travel jump line
@@ -862,7 +896,9 @@ function togglePlayback() {
 
   isPlaying = !isPlaying;
   const btn = document.getElementById('playPauseBtn');
-  btn.innerText = isPlaying ? '⏸ Pause' : '▶ Play';
+  btn.innerHTML = isPlaying
+    ? `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg><span>Pause</span>`
+    : `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><polygon points="6 4 20 12 6 20 6 4"/></svg><span>Play</span>`;
 
   if (isPlaying) {
     animatePlayhead();
@@ -880,7 +916,7 @@ function animatePlayhead() {
   if (playheadIndex >= stitches.length) {
     playheadIndex = stitches.length;
     isPlaying = false;
-    document.getElementById('playPauseBtn').innerText = '▶ Play';
+    document.getElementById('playPauseBtn').innerHTML = `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><polygon points="6 4 20 12 6 20 6 4"/></svg><span>Play</span>`;
     document.getElementById('playheadSlider').value = playheadIndex;
     render();
     return;
@@ -1637,7 +1673,7 @@ document.getElementById('btnGenerate').onclick = () => {
   triggerRegeneration();
   const btn = document.getElementById('btnGenerate');
   const oldText = btn.innerHTML;
-  btn.innerHTML = '<span>✓ Weave Generated!</span>';
+  btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;"><svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="stroke:currentColor;"><polyline points="20 6 9 17 4 12"/></svg><span>Weave Generated!</span></span>';
   setTimeout(() => { btn.innerHTML = oldText; }, 1200);
 };
 

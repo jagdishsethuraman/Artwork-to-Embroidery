@@ -4,6 +4,20 @@ All notable changes to the Artwork-to-Embroidery Engine are documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-09-20
+
+### Added
+- **OLED Industrial Design Token System (`public/index.html`):**
+  - High-contrast OLED dark palette (`--bg-canvas: #090d16`, `--bg-surface: #0f172a`, `--border-subtle: #1e293b`).
+  - Doppelrand dual-layer box shadows and hairline border insets.
+  - Micro-haptic tactile active states with spring physics (`transform: scale(0.975)`).
+- **Comprehensive Zero-Emoji Vector SVG Icon System (`public/index.html` & `public/app.js`):**
+  - Replaced all emojis across entire application with unified inline vector SVGs (1.75px stroke, rounded terminals, inheriting `currentColor`).
+  - Includes Header actions (thread spool brand, curved undo/redo arrows, image frame, format badges for DST/EXP/PES/JEF), Sidebar presets (daisy, typography, crest shield), Canvas HUD controls (split knife, pan reticle, reset, diagnostics), Layer sequence controls (6-dot grip, chevrons, eye visibility toggle), Playback controls (play/pause SVGs), and all Modals.
+- **Layer Visibility Toggle (`public/app.js`):**
+  - Added eye/eye-off toggle button to each layer card in the sequence manager.
+  - Non-destructive canvas rendering toggle allowing individual embroidery layers to be shown or hidden during preview and stitch playback.
+
 ## [1.6.0] - 2026-09-20
 
 ### Added
