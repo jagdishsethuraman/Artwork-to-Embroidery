@@ -530,17 +530,35 @@ function syncParamInputs() {
   const layer = engine.getActiveLayer();
   if (!layer) return;
 
+  const dVal = layer.params.density !== undefined ? layer.params.density : 0.4;
+  const sVal = layer.params.stitchLength !== undefined ? layer.params.stitchLength : 3.5;
+  const aVal = layer.params.angle !== undefined ? layer.params.angle : 0;
+  const pVal = layer.params.pullComp !== undefined ? layer.params.pullComp : 0.3;
+
   document.getElementById('stitchTypeSelect').value = layer.stitchType;
-  document.getElementById('densityInput').value = layer.params.density || 0.4;
-  document.getElementById('stitchLenInput').value = layer.params.stitchLength || 3.5;
-  document.getElementById('angleInput').value = layer.params.angle || 0;
-  document.getElementById('pullCompInput').value = layer.params.pullComp || 0.3;
+  document.getElementById('densityInput').value = dVal;
+  document.getElementById('stitchLenInput').value = sVal;
+  document.getElementById('angleInput').value = aVal;
+  document.getElementById('pullCompInput').value = pVal;
   document.getElementById('underlayCheck').checked = !!layer.params.underlay;
 
-  document.getElementById('densityVal').innerText = `${layer.params.density || 0.4} mm`;
-  document.getElementById('stitchLenVal').innerText = `${layer.params.stitchLength || 3.5} mm`;
-  document.getElementById('angleVal').innerText = `${layer.params.angle || 0}°`;
-  document.getElementById('pullCompVal').innerText = `+${layer.params.pullComp || 0.3} mm`;
+  const dNum = document.getElementById('densityNumInput');
+  if (dNum) dNum.value = dVal;
+  const sNum = document.getElementById('stitchLenNumInput');
+  if (sNum) sNum.value = sVal;
+  const aNum = document.getElementById('angleNumInput');
+  if (aNum) aNum.value = aVal;
+  const pNum = document.getElementById('pullCompNumInput');
+  if (pNum) pNum.value = pVal;
+
+  const dValEl = document.getElementById('densityVal');
+  if (dValEl) dValEl.innerText = `${dVal} mm`;
+  const sValEl = document.getElementById('stitchLenVal');
+  if (sValEl) sValEl.innerText = `${sVal} mm`;
+  const aValEl = document.getElementById('angleVal');
+  if (aValEl) aValEl.innerText = `${aVal}°`;
+  const pValEl = document.getElementById('pullCompVal');
+  if (pValEl) pValEl.innerText = `+${pVal} mm`;
 }
 
 function updateStats() {
@@ -2384,58 +2402,161 @@ document.getElementById('stitchTypeSelect').onchange = (e) => {
   }
 };
 
-['densityInput', 'stitchLenInput', 'angleInput', 'pullCompInput', 'underlayCheck'].forEach(id => {
+['densityInput', 'stitchLenInput', 'angleInput', 'pullCompInput', 'underlayCheck', 'densityNumInput', 'stitchLenNumInput', 'angleNumInput', 'pullCompNumInput'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', () => pushState());
 });
 
-document.getElementById('densityInput').oninput = (e) => {
-  const layer = engine.getActiveLayer();
-  if (layer) {
-    const val = parseFloat(e.target.value);
-    layer.params.density = val;
-    document.getElementById('densityVal').innerText = `${val} mm`;
-    updateStats();
-    resetPlayhead();
-    render();
-  }
-};
+// Density Sync (Slider <-> Editable Field)
+const densityInput = document.getElementById('densityInput');
+const densityNumInput = document.getElementById('densityNumInput');
 
-document.getElementById('stitchLenInput').oninput = (e) => {
-  const layer = engine.getActiveLayer();
-  if (layer) {
-    const val = parseFloat(e.target.value);
-    layer.params.stitchLength = val;
-    document.getElementById('stitchLenVal').innerText = `${val} mm`;
-    updateStats();
-    resetPlayhead();
-    render();
-  }
-};
+if (densityInput) {
+  densityInput.oninput = (e) => {
+    const layer = engine.getActiveLayer();
+    if (layer) {
+      const val = parseFloat(e.target.value);
+      layer.params.density = val;
+      if (densityNumInput) densityNumInput.value = val;
+      const dEl = document.getElementById('densityVal');
+      if (dEl) dEl.innerText = `${val} mm`;
+      updateStats();
+      resetPlayhead();
+      render();
+    }
+  };
+}
+// Auto-select entire value on focus for fast replacement
+document.querySelectorAll('.param-num-input').forEach(input => {
+  input.addEventListener('focus', function() {
+    this.select();
+  });
+});
 
-document.getElementById('angleInput').oninput = (e) => {
-  const layer = engine.getActiveLayer();
-  if (layer) {
-    const val = parseInt(e.target.value);
-    layer.params.angle = val;
-    document.getElementById('angleVal').innerText = `${val}°`;
-    updateStats();
-    resetPlayhead();
-    render();
-  }
-};
+if (densityNumInput) {
+  densityNumInput.oninput = (e) => {
+    const layer = engine.getActiveLayer();
+    if (layer) {
+      let val = parseFloat(e.target.value);
+      if (!isNaN(val) && val > 0) {
+        val = Math.max(0.1, Math.min(2.0, val));
+        layer.params.density = val;
+        if (densityInput) densityInput.value = val;
+        updateStats();
+        resetPlayhead();
+        render();
+      }
+    }
+  };
+}
 
-document.getElementById('pullCompInput').oninput = (e) => {
-  const layer = engine.getActiveLayer();
-  if (layer) {
-    const val = parseFloat(e.target.value);
-    layer.params.pullComp = val;
-    document.getElementById('pullCompVal').innerText = `+${val} mm`;
-    updateStats();
-    resetPlayhead();
-    render();
-  }
-};
+// Stitch Step Length Sync (Slider <-> Editable Field)
+const stitchLenInput = document.getElementById('stitchLenInput');
+const stitchLenNumInput = document.getElementById('stitchLenNumInput');
+
+if (stitchLenInput) {
+  stitchLenInput.oninput = (e) => {
+    const layer = engine.getActiveLayer();
+    if (layer) {
+      const val = parseFloat(e.target.value);
+      layer.params.stitchLength = val;
+      if (stitchLenNumInput) stitchLenNumInput.value = val;
+      const sEl = document.getElementById('stitchLenVal');
+      if (sEl) sEl.innerText = `${val} mm`;
+      updateStats();
+      resetPlayhead();
+      render();
+    }
+  };
+}
+if (stitchLenNumInput) {
+  stitchLenNumInput.oninput = (e) => {
+    const layer = engine.getActiveLayer();
+    if (layer) {
+      let val = parseFloat(e.target.value);
+      if (!isNaN(val) && val > 0) {
+        val = Math.max(1.0, Math.min(8.0, val));
+        layer.params.stitchLength = val;
+        if (stitchLenInput) stitchLenInput.value = val;
+        updateStats();
+        resetPlayhead();
+        render();
+      }
+    }
+  };
+}
+
+// Stitch Angle Sync (Slider <-> Editable Field)
+const angleInput = document.getElementById('angleInput');
+const angleNumInput = document.getElementById('angleNumInput');
+
+if (angleInput) {
+  angleInput.oninput = (e) => {
+    const layer = engine.getActiveLayer();
+    if (layer) {
+      const val = parseInt(e.target.value);
+      layer.params.angle = val;
+      if (angleNumInput) angleNumInput.value = val;
+      const aEl = document.getElementById('angleVal');
+      if (aEl) aEl.innerText = `${val}°`;
+      updateStats();
+      resetPlayhead();
+      render();
+    }
+  };
+}
+if (angleNumInput) {
+  angleNumInput.oninput = (e) => {
+    const layer = engine.getActiveLayer();
+    if (layer) {
+      let val = parseInt(e.target.value);
+      if (!isNaN(val)) {
+        val = ((val % 360) + 360) % 360;
+        layer.params.angle = val;
+        if (angleInput) angleInput.value = Math.min(180, val);
+        updateStats();
+        resetPlayhead();
+        render();
+      }
+    }
+  };
+}
+
+// Pull Compensation Sync (Slider <-> Editable Field)
+const pullCompInput = document.getElementById('pullCompInput');
+const pullCompNumInput = document.getElementById('pullCompNumInput');
+
+if (pullCompInput) {
+  pullCompInput.oninput = (e) => {
+    const layer = engine.getActiveLayer();
+    if (layer) {
+      const val = parseFloat(e.target.value);
+      layer.params.pullComp = val;
+      if (pullCompNumInput) pullCompNumInput.value = val;
+      const pEl = document.getElementById('pullCompVal');
+      if (pEl) pEl.innerText = `+${val} mm`;
+      updateStats();
+      resetPlayhead();
+      render();
+    }
+  };
+}
+if (pullCompNumInput) {
+  pullCompNumInput.oninput = (e) => {
+    const layer = engine.getActiveLayer();
+    if (layer) {
+      let val = parseFloat(e.target.value);
+      if (!isNaN(val)) {
+        val = Math.max(0.0, Math.min(2.0, val));
+        layer.params.pullComp = val;
+        if (pullCompInput) pullCompInput.value = Math.min(0.8, val);
+        updateStats();
+        resetPlayhead();
+        render();
+      }
+    }
+  };
+}
 
 document.getElementById('underlayCheck').onchange = (e) => {
   const layer = engine.getActiveLayer();

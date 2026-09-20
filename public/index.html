@@ -1018,6 +1018,51 @@
       color: var(--accents-8);
     }
 
+    /* Parameter Editable Numeric Fields */
+    .param-input-wrap {
+      display: inline-flex;
+      align-items: center;
+      background: #000000;
+      border: 1px solid var(--accents-2);
+      border-radius: 4px;
+      padding: 1px 6px;
+      gap: 3px;
+      transition: all 0.15s ease;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .param-input-wrap:focus-within {
+      border-color: var(--geist-selection);
+      box-shadow: 0 0 0 1px var(--geist-selection);
+    }
+
+    .param-num-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--accents-8);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      width: 48px;
+      text-align: right;
+      padding: 2px 0;
+      -moz-appearance: textfield;
+    }
+
+    .param-num-input::-webkit-outer-spin-button,
+    .param-num-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .param-unit {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accents-5);
+      user-select: none;
+    }
+
     /* Vercel Hairline Slider */
     input[type="range"] {
       -webkit-appearance: none;
@@ -1750,16 +1795,15 @@
           <option value="running">Running Stitch (Single line)</option>
           <option value="bean">Bean Stitch (Heavy triple run)</option>
         </select>
-        <button class="btn btn-primary" id="btnGenerate" style="margin-top:8px;width:100%;justify-content:center;padding:9px 12px;font-size:13px;letter-spacing:0.02em;">
-          <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          <span>Generate / Re-weave Stitches</span>
-        </button>
       </div>
 
       <div class="form-group">
         <div class="form-label">
           <span>Stitch Density (Row Pitch)</span>
-          <span class="form-value" id="densityVal">0.4 mm</span>
+          <div class="param-input-wrap">
+            <input type="number" class="param-num-input" id="densityNumInput" min="0.1" max="2.0" step="0.05" value="0.4" />
+            <span class="param-unit">mm</span>
+          </div>
         </div>
         <input type="range" id="densityInput" min="0.2" max="1.0" step="0.05" value="0.4" />
       </div>
@@ -1767,7 +1811,10 @@
       <div class="form-group">
         <div class="form-label">
           <span>Stitch Step Length</span>
-          <span class="form-value" id="stitchLenVal">3.5 mm</span>
+          <div class="param-input-wrap">
+            <input type="number" class="param-num-input" id="stitchLenNumInput" min="1.0" max="8.0" step="0.1" value="3.5" />
+            <span class="param-unit">mm</span>
+          </div>
         </div>
         <input type="range" id="stitchLenInput" min="1.5" max="6.0" step="0.2" value="3.5" />
       </div>
@@ -1775,7 +1822,10 @@
       <div class="form-group">
         <div class="form-label">
           <span>Stitch Angle</span>
-          <span class="form-value" id="angleVal">0°</span>
+          <div class="param-input-wrap">
+            <input type="number" class="param-num-input" id="angleNumInput" min="0" max="360" step="1" value="0" />
+            <span class="param-unit">°</span>
+          </div>
         </div>
         <input type="range" id="angleInput" min="0" max="180" step="5" value="0" />
       </div>
@@ -1783,15 +1833,23 @@
       <div class="form-group">
         <div class="form-label">
           <span>Pull Compensation</span>
-          <span class="form-value" id="pullCompVal">+0.3 mm</span>
+          <div class="param-input-wrap">
+            <input type="number" class="param-num-input" id="pullCompNumInput" min="0.0" max="1.5" step="0.05" value="0.3" />
+            <span class="param-unit">mm</span>
+          </div>
         </div>
         <input type="range" id="pullCompInput" min="0.0" max="0.8" step="0.05" value="0.3" />
       </div>
 
-      <div class="form-group" style="flex-direction:row;align-items:center;justify-content:space-between;padding-top:12px;">
+      <div class="form-group" style="flex-direction:row;align-items:center;justify-content:space-between;padding-top:8px;">
         <label class="form-label" style="margin-bottom:0;">Generate Underlay</label>
         <input type="checkbox" id="underlayCheck" checked style="width:18px;height:18px;accent-color:var(--accent-blue);" />
       </div>
+
+      <button class="btn btn-primary" id="btnGenerate" style="margin-top:14px;margin-bottom:8px;width:100%;justify-content:center;padding:10px 14px;font-size:13px;letter-spacing:0.02em;">
+        <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span>Generate / Re-weave Stitches</span>
+      </button>
 
       <div class="hint-box">
         <svg class="svg-icon" viewBox="0 0 24 24" style="color:var(--accent-amber);"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
