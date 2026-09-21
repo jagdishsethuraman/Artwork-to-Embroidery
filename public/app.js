@@ -1609,15 +1609,21 @@ function openDiagnosticsModal() {
   const layerCount = engine.layers.length;
 
   body.innerHTML = `
-    <!-- Top Score Banner -->
-    <div style="background:linear-gradient(135deg, rgba(34,197,94,0.15), rgba(14,165,233,0.15));border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between;">
+    <!-- Top Score Banner: Atelier Raw Brass Luxury Spec -->
+    <div style="background:radial-gradient(ellipse at top right, rgba(229,169,60,0.12), transparent 70%), var(--accents-1);border:1px solid rgba(229,169,60,0.35);box-shadow:0 0 20px rgba(229,169,60,0.06);border-radius:10px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;">Machine Quality Score (Wilcom / EM Standards)</div>
-        <div style="font-size:22px;font-weight:800;color:#fff;margin-top:2px;">100 / 100 <span style="font-size:12px;font-weight:600;color:#86efac;">(Commercial Production Ready)</span></div>
+        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--atelier-brass);display:inline-flex;align-items:center;gap:5px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--atelier-brass);"></span>
+          <span>Machine Quality Score (Wilcom / EM Standards)</span>
+        </div>
+        <div style="font-size:24px;font-weight:800;color:#fff;margin-top:4px;font-family:var(--font-mono);display:flex;align-items:baseline;gap:8px;">
+          <span style="color:var(--atelier-brass);">100 / 100</span>
+          <span style="font-size:11.5px;font-weight:600;color:var(--accents-6);font-family:var(--font-sans);">(Commercial Production Ready)</span>
+        </div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:11px;color:#94a3b8;">Tajima .DST Size</div>
-        <div style="font-size:13px;font-family:var(--font-mono);font-weight:700;color:#38bdf8;">${dstBytes.length} bytes</div>
+        <div style="font-size:10.5px;color:var(--accents-5);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Tajima .DST Payload</div>
+        <div style="font-size:14px;font-family:var(--font-mono);font-weight:700;color:var(--atelier-brass);margin-top:2px;">${dstBytes.length.toLocaleString()} bytes</div>
       </div>
     </div>
 
@@ -1628,9 +1634,9 @@ function openDiagnosticsModal() {
         <span class="${longStitchesCount === 0 ? 'badge-pass' : 'badge-alert'}">${longStitchesCount === 0 ? 'PASSED (0 Defects)' : 'FAIL'}</span>
       </div>
       <div style="font-size:12px;color:#cbd5e1;line-height:1.6;">
-        Maximum sewing stitch length: <strong>${maxSewDist.toFixed(2)} mm</strong><br />
-        Stitches exceeding 7.0mm commercial limit: <strong style="color:${longStitchesCount === 0 ? '#4ade80' : '#f87171'}">${longStitchesCount}</strong><br />
-        <span style="font-size:11px;color:#94a3b8;">Subdivides sewing stitches to prevent thread snagging and loose loops on commercial machines.</span>
+        Maximum sewing stitch length: <strong style="font-family:var(--font-mono);color:var(--accents-8);">${maxSewDist.toFixed(2)} mm</strong><br />
+        Stitches exceeding 7.0mm commercial limit: <strong style="font-family:var(--font-mono);color:${longStitchesCount === 0 ? 'var(--atelier-brass)' : '#f87171'}">${longStitchesCount}</strong><br />
+        <span style="font-size:11px;color:var(--accents-5);">Subdivides sewing stitches to prevent thread snagging and loose loops on commercial embroidery heads.</span>
       </div>
     </div>
 
@@ -1640,14 +1646,14 @@ function openDiagnosticsModal() {
         <span class="badge-pass">PASSED (100% Compliant)</span>
       </div>
       <div style="font-size:12px;color:#cbd5e1;line-height:1.6;">
-        Tajima maximum register limit: <strong>121 units (12.1 mm)</strong><br />
-        Long travels chunked into intermediate jumps: <strong>${chunkedTravels.length} paths</strong> (${jumpChunksCount} intermediate binary jumps)<br />
+        Tajima maximum register limit: <strong style="font-family:var(--font-mono);color:var(--accents-8);">121 units (12.1 mm)</strong><br />
+        Long travels chunked into intermediate jumps: <strong style="font-family:var(--font-mono);color:var(--atelier-brass);">${chunkedTravels.length} paths</strong> (${jumpChunksCount} intermediate binary jumps)<br />
         ${
           chunkedTravels.length > 0
-            ? `<div style="margin-top:6px;padding:6px 10px;background:#030712;border-radius:6px;font-family:var(--font-mono);font-size:11px;color:#93c5fd;max-height:90px;overflow-y:auto;">
-                ${chunkedTravels.map(t => `<div>&bull; Move ${t.from} &rarr; ${t.to}: <strong>${t.totalMm}mm</strong> &rarr; <strong>${t.chunks} jumps</strong> of &le;12.1mm</div>`).join('')}
+            ? `<div style="margin-top:6px;padding:6px 10px;background:#030712;border:1px solid var(--accents-2);border-radius:6px;font-family:var(--font-mono);font-size:11px;color:#f1f5f9;max-height:90px;overflow-y:auto;">
+                ${chunkedTravels.map(t => `<div style="padding:2px 0;"><span style="color:var(--atelier-brass);">&bull;</span> Move ${t.from} &rarr; ${t.to}: <strong>${t.totalMm}mm</strong> &rarr; <span style="color:var(--atelier-brass);">${t.chunks} jumps</span> (&le;12.1mm)</div>`).join('')}
                </div>`
-            : '<span style="font-size:11px;color:#94a3b8;">All moves fit within standard delta registers.</span>'
+            : '<span style="font-size:11px;color:var(--accents-5);">All moves fit within standard delta registers.</span>'
         }
       </div>
     </div>
@@ -2804,43 +2810,215 @@ function resizeCanvas() {
 }
 window.addEventListener('resize', resizeCanvas);
 
-// Typography Lettering Modal Event Handlers
+// Typography Lettering Modal & Live Arc Preview Handlers
 const btnSidebarLettering = document.getElementById('btnSidebarLettering');
 const btnHeaderLettering = document.getElementById('btnHeaderLettering');
 const letteringModal = document.getElementById('letteringModal');
 const closeLetteringBtn = document.getElementById('closeLetteringBtn');
+const letteringTextInput = document.getElementById('letteringTextInput');
+const letteringFontSelect = document.getElementById('letteringFontSelect');
+const letteringStitchSelect = document.getElementById('letteringStitchSelect');
 const letteringHeightInput = document.getElementById('letteringHeightInput');
 const letteringHeightVal = document.getElementById('letteringHeightVal');
 const letteringArcInput = document.getElementById('letteringArcInput');
 const letteringArcVal = document.getElementById('letteringArcVal');
+const letteringColorSelect = document.getElementById('letteringColorSelect');
 const btnGenerateLettering = document.getElementById('btnGenerateLettering');
 
+function renderPreviewCharDecorations(ctx, char, hex, stitchStyle) {
+  if (stitchStyle === 'running') {
+    ctx.strokeStyle = hex;
+    ctx.lineWidth = 1.6;
+    ctx.strokeText(char, 0, 0);
+  } else if (stitchStyle === 'satin') {
+    ctx.fillStyle = hex;
+    ctx.shadowColor = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 1;
+    ctx.fillText(char, 0, 0);
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 0.9;
+    ctx.strokeText(char, 0, 0);
+  } else if (stitchStyle === 'twill') {
+    ctx.fillStyle = hex;
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(char, 0, 0);
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 0.8;
+    ctx.strokeText(char, 0, 0);
+  } else {
+    // Tatami
+    ctx.fillStyle = hex;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 2;
+    ctx.fillText(char, 0, 0);
+    ctx.shadowColor = 'transparent';
+  }
+}
+
+function renderPreviewTextDecorations(ctx, text, cx, cy, hex, stitchStyle) {
+  if (stitchStyle === 'running') {
+    ctx.strokeStyle = hex;
+    ctx.lineWidth = 1.6;
+    ctx.strokeText(text, cx, cy);
+  } else if (stitchStyle === 'satin') {
+    ctx.fillStyle = hex;
+    ctx.shadowColor = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 1;
+    ctx.fillText(text, cx, cy);
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 0.9;
+    ctx.strokeText(text, cx, cy);
+  } else if (stitchStyle === 'twill') {
+    ctx.fillStyle = hex;
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(text, cx, cy);
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 0.8;
+    ctx.strokeText(text, cx, cy);
+  } else {
+    ctx.fillStyle = hex;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 2;
+    ctx.fillText(text, cx, cy);
+    ctx.shadowColor = 'transparent';
+  }
+}
+
+function updateLetteringPreview() {
+  const canvas = document.getElementById('letteringPreviewCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const text = (letteringTextInput ? letteringTextInput.value : 'ATHLETIC 26').trim() || 'TEXT';
+  const font = letteringFontSelect ? letteringFontSelect.value : 'varsity';
+  const stitchStyle = letteringStitchSelect ? letteringStitchSelect.value : 'satin';
+  const heightMm = parseFloat(letteringHeightInput ? letteringHeightInput.value : 20) || 20;
+  const arcDeg = parseFloat(letteringArcInput ? letteringArcInput.value : 0) || 0;
+  const colorRaw = letteringColorSelect ? letteringColorSelect.value : '#f8fafc|Madeira 1001';
+  const [hex] = colorRaw.split('|');
+
+  const metricsEl = document.getElementById('letteringPreviewMetrics');
+  if (metricsEl) {
+    const stitchLabel = stitchStyle.charAt(0).toUpperCase() + stitchStyle.slice(1);
+    metricsEl.textContent = `${arcDeg > 0 ? '+' : ''}${arcDeg}° Arc • ${heightMm}mm ${stitchLabel}`;
+  }
+
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Background subtle guide grid
+  ctx.save();
+  ctx.strokeStyle = '#18181b';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
+  ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+  ctx.stroke();
+
+  // Font setup
+  let fontCss = 'bold 22px "Geist Sans", -apple-system, sans-serif';
+  if (font === 'varsity') fontCss = 'bold 24px Impact, "Arial Black", sans-serif';
+  else if (font === 'serif') fontCss = 'bold 22px "Times New Roman", Georgia, serif';
+  else if (font === 'script') fontCss = 'italic 23px "Brush Script MT", "Caveat", cursive';
+  else if (font === 'monospace') fontCss = 'bold 20px "Geist Mono", monospace';
+
+  ctx.font = fontCss;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const arcRad = (arcDeg * Math.PI) / 180;
+  const cx = w / 2;
+
+  if (Math.abs(arcDeg) < 1) {
+    // Flat baseline
+    const cy = h / 2;
+    renderPreviewTextDecorations(ctx, text, cx, cy, hex, stitchStyle);
+  } else {
+    // Polar arc mapping
+    const totalChars = text.length;
+    const spreadAngle = arcRad;
+    const R = Math.max(70, Math.min(260, (w * 0.7) / Math.abs(arcRad)));
+    const dir = arcDeg > 0 ? 1 : -1;
+    const circleCenterY = dir > 0 ? (h / 2 + R - 16) : (h / 2 - R + 16);
+
+    for (let i = 0; i < totalChars; i++) {
+      const char = text[i];
+      const frac = totalChars > 1 ? (i / (totalChars - 1)) - 0.5 : 0;
+      const theta = frac * spreadAngle;
+
+      let charAngle, charX, charY, tangentAngle;
+      if (dir > 0) {
+        charAngle = -Math.PI / 2 + theta;
+        charX = cx + R * Math.cos(charAngle);
+        charY = circleCenterY + R * Math.sin(charAngle);
+        tangentAngle = charAngle + Math.PI / 2;
+      } else {
+        charAngle = Math.PI / 2 - theta;
+        charX = cx + R * Math.cos(charAngle);
+        charY = circleCenterY + R * Math.sin(charAngle);
+        tangentAngle = -(charAngle - Math.PI / 2);
+      }
+
+      ctx.save();
+      ctx.translate(charX, charY);
+      ctx.rotate(tangentAngle);
+      renderPreviewCharDecorations(ctx, char, hex, stitchStyle);
+      ctx.restore();
+    }
+  }
+
+  ctx.restore();
+}
+
 if (letteringModal) {
-  if (btnSidebarLettering) {
-    btnSidebarLettering.onclick = () => {
-      letteringModal.style.display = 'flex';
-    };
-  }
-  if (btnHeaderLettering) {
-    btnHeaderLettering.onclick = () => {
-      letteringModal.style.display = 'flex';
-    };
-  }
+  const openLetteringModal = () => {
+    letteringModal.style.display = 'flex';
+    updateLetteringPreview();
+  };
+
+  if (btnSidebarLettering) btnSidebarLettering.onclick = openLetteringModal;
+  if (btnHeaderLettering) btnHeaderLettering.onclick = openLetteringModal;
+
   if (closeLetteringBtn) {
     closeLetteringBtn.onclick = () => {
       letteringModal.style.display = 'none';
     };
   }
 
+  if (letteringTextInput) {
+    letteringTextInput.oninput = updateLetteringPreview;
+  }
+  if (letteringFontSelect) {
+    letteringFontSelect.onchange = updateLetteringPreview;
+  }
+  if (letteringStitchSelect) {
+    letteringStitchSelect.onchange = updateLetteringPreview;
+  }
+  if (letteringColorSelect) {
+    letteringColorSelect.onchange = updateLetteringPreview;
+  }
+
   if (letteringHeightInput && letteringHeightVal) {
     letteringHeightInput.oninput = (e) => {
       letteringHeightVal.innerText = `${e.target.value} mm`;
+      updateLetteringPreview();
     };
   }
 
   if (letteringArcInput && letteringArcVal) {
     letteringArcInput.oninput = (e) => {
       letteringArcVal.innerText = `${e.target.value}°`;
+      updateLetteringPreview();
     };
   }
 
@@ -2895,16 +3073,35 @@ const btnOpenHelp = document.getElementById('btnOpenHelp');
 const helpModal = document.getElementById('helpModal');
 const closeHelpBtn = document.getElementById('closeHelpBtn');
 const helpModalSearch = document.getElementById('helpModalSearch');
+const btnImportHelp = document.getElementById('btnImportHelp');
+const btnLetteringHelp = document.getElementById('btnLetteringHelp');
+const btnDiagnosticsHelp = document.getElementById('btnDiagnosticsHelp');
 
-function openHelpModal() {
-  if (helpModal) helpModal.style.display = 'flex';
+const helpTabButtons = document.querySelectorAll('.help-tab-btn');
+const helpTabContents = document.querySelectorAll('.help-tab-content');
+
+function openHelpModal(targetTabId) {
+  if (!helpModal) return;
+  if (targetTabId) {
+    helpTabButtons.forEach(b => b.classList.remove('active'));
+    helpTabContents.forEach(c => c.style.display = 'none');
+    const targetBtn = document.querySelector(`.help-tab-btn[data-tab="${targetTabId}"]`);
+    if (targetBtn) targetBtn.classList.add('active');
+    const targetEl = document.getElementById(targetTabId);
+    if (targetEl) targetEl.style.display = 'block';
+  }
+  helpModal.style.display = 'flex';
 }
 
 function closeHelpModal() {
   if (helpModal) helpModal.style.display = 'none';
 }
 
-if (btnOpenHelp) btnOpenHelp.onclick = openHelpModal;
+if (btnOpenHelp) btnOpenHelp.onclick = () => openHelpModal();
+if (btnImportHelp) btnImportHelp.onclick = () => openHelpModal('helpTabImport');
+if (btnLetteringHelp) btnLetteringHelp.onclick = () => openHelpModal('helpTabLettering');
+if (btnDiagnosticsHelp) btnDiagnosticsHelp.onclick = () => openHelpModal('helpTabExporters');
+
 if (closeHelpBtn) closeHelpBtn.onclick = closeHelpModal;
 if (helpModal) {
   helpModal.onclick = (e) => {
@@ -2913,9 +3110,6 @@ if (helpModal) {
 }
 
 // Help Modal Tab Switching
-const helpTabButtons = document.querySelectorAll('.help-tab-btn');
-const helpTabContents = document.querySelectorAll('.help-tab-content');
-
 helpTabButtons.forEach(btn => {
   btn.onclick = () => {
     helpTabButtons.forEach(b => b.classList.remove('active'));

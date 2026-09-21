@@ -457,18 +457,20 @@
       <p>Clicking <strong>[Add Lettering]</strong> opens the in-canvas typography modal for generating collegiate block, serif, and scripted lettering.</p>
 
       <div class="screenshot-card">
-        <img src="/docs/images/lettering_modal.png" alt="Typography & Lettering Engine Modal">
+        <img src="/docs/images/lettering_modal.png" alt="Typography & Lettering Engine Modal with Live Vector Arc Preview">
         <div class="screenshot-caption">
-          <span>Figure 4: Typography Modal with Font Selection, Baseline Height, and Polar Arc Warping</span>
-          <span class="badge-brass">Arc Warping Engine</span>
+          <span>Figure 4: Typography Modal with Real-Time Live Vector Arc Preview, Dynamic Polar Warping, and Thread Sheen Rendering</span>
+          <span class="badge-brass">Live Vector Preview</span>
         </div>
       </div>
 
       <p>Key Lettering Features:</p>
       <ul style="margin-left: 20px; margin-bottom: 20px; color: #ccc;">
-        <li><strong>Arc Curve Slider (-60° to +60°):</strong> Bends text along a smooth mathematical polar arch before stitch generation, ensuring needle drops remain perpendicular to the curve.</li>
-        <li><strong>Automatic Hole Punching:</strong> Automatically extracts inner cutout loops in letters like <code>A</code>, <code>B</code>, <code>O</code>, <code>D</code>, and <code>P</code>, preventing stitches from traversing through negative space.</li>
-        <li><strong>Minimum Height Guideline:</strong> Standard 40wt thread is 0.4mm thick. For clean, legible satin lettering, keep letter height at $\ge 12\text{mm}$.</li>
+        <li><strong>Interactive Live Vector Arc Preview Strip:</strong> Provides instantaneous, zero-latency visual feedback inside the modal as you type text, alter fonts, change thread colors, or adjust arc curvature before committing to the canvas.</li>
+        <li><strong>Dynamic Polar Arc Warping (-60° to +60°):</strong> Mathematically wraps glyphs along a circular chord with radius $R = \frac{W}{\theta_{\text{rad}}}$. Tangent angles rotate each character perpendicularly to the curve, ensuring flawless satin column formation.</li>
+        <li><strong>Automatic Hole Loop Extraction:</strong> Automatically identifies and punches inner cutout loops in letters (e.g. <code>A</code>, <code>B</code>, <code>D</code>, <code>O</code>, <code>P</code>, <code>R</code>), preventing stitch threads from colliding across negative space.</li>
+        <li><strong>Thread Sheen & Texture Simulation:</strong> Preview accurately renders 3D thread highlights, directional twill weaves, or satin column overlays in physical Madeira Polyneon color shades.</li>
+        <li><strong>Minimum Height Guideline:</strong> Standard commercial 40wt embroidery thread is 0.4mm thick. For clean, legible satin lettering, keep letter height at $\ge 12\text{mm}$.</li>
       </ul>
     </section>
 
@@ -566,6 +568,24 @@
           </tr>
         </tbody>
       </table>
+
+      <h3 style="margin-top: 24px;">Commercial Diagnostics & Quality Scoring</h3>
+      <p>Pressing <span class="mono-tag">D</span> on your keyboard or clicking the Diagnostics icon in the floating HUD opens the <strong>Machine Compliance & TC-502 Inspector</strong>:</p>
+
+      <div class="screenshot-card">
+        <img src="/docs/images/diagnostics_modal.png" alt="Machine Compliance & TC-502 Diagnostics Modal">
+        <div class="screenshot-caption">
+          <span>Figure 6: Real-Time Machine Diagnostics with Luxury Quality Score, Tajima DST Byte Payload, and Jump-Chunking Telemetry</span>
+          <span class="badge-brass">TC-501 & TC-502 Compliance</span>
+        </div>
+      </div>
+
+      <p>The diagnostics engine verifies 3 critical industrial standards:</p>
+      <ul style="margin-left: 20px; margin-bottom: 20px; color: #ccc;">
+        <li><strong>TC-501 Commercial Stitch Length (&le; 7.0mm):</strong> Subdivides long sewing lines to prevent loose loops or snags on high-speed commercial embroidery heads (800–1200 RPM).</li>
+        <li><strong>TC-502 Tajima Delta Limit (&le; 12.1mm):</strong> tajima machines use 7-bit binary register encoding limiting delta movements to $\pm 121$ units ($12.1\text{mm}$). Moves exceeding 12.1mm are automatically chunked into intermediate jumps.</li>
+        <li><strong>Canonical Locks & Trims:</strong> Verifies 4-point cross tie-in locks at start of every color channel, tie-off locks before stops, and Tajima 3-jump commands that activate physical thread trimmer knives.</li>
+      </ul>
     </section>
 
     <section id="shortcuts">

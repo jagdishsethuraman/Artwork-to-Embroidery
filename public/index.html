@@ -1169,6 +1169,28 @@
       transform: scale(1.15);
     }
 
+    input[type="text"], input[type="search"] {
+      width: 100%;
+      background: var(--accents-1);
+      border: 1px solid var(--accents-2);
+      color: var(--accents-8);
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input[type="text"]:focus, input[type="search"]:focus {
+      border-color: var(--atelier-brass);
+      box-shadow: 0 0 0 1px rgba(229, 169, 60, 0.25);
+    }
+
+    input[type="checkbox"] {
+      accent-color: var(--atelier-brass);
+      cursor: pointer;
+    }
+
     select {
       width: 100%;
       background: var(--accents-1);
@@ -1281,13 +1303,14 @@
     }
 
     .badge-pass {
-      background: rgba(0, 112, 243, 0.12);
-      color: #3291ff;
-      border: 1px solid rgba(0, 112, 243, 0.3);
+      background: rgba(229, 169, 60, 0.12);
+      color: var(--atelier-brass);
+      border: 1px solid rgba(229, 169, 60, 0.35);
       font-size: 10px;
       font-weight: 600;
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 4px;
+      letter-spacing: 0.03em;
     }
 
     .badge-alert {
@@ -1320,9 +1343,9 @@
       color: var(--accents-8);
     }
     .help-tab-btn.active {
-      background: var(--accents-2);
-      color: var(--accents-8);
-      border-color: var(--accents-3);
+      background: var(--atelier-brass-faint);
+      color: var(--atelier-brass);
+      border-color: rgba(229, 169, 60, 0.4);
       font-weight: 600;
     }
 
@@ -1342,8 +1365,9 @@
     }
 
     .dropzone:hover, .dropzone.dragover {
-      border-color: var(--accents-5);
-      background: #141414;
+      border-color: var(--atelier-brass);
+      background: rgba(229, 169, 60, 0.04);
+      box-shadow: 0 0 16px rgba(229, 169, 60, 0.08);
     }
 
     .dropzone-title {
@@ -1387,9 +1411,10 @@
     }
 
     .sample-pill.active {
-      background: var(--accents-2);
-      border-color: var(--accents-4);
-      color: var(--accents-8);
+      background: var(--atelier-brass-faint);
+      border-color: rgba(229, 169, 60, 0.45);
+      color: var(--atelier-brass);
+      font-weight: 600;
     }
 
     .preview-tri-grid {
@@ -1792,7 +1817,7 @@
           <button class="tool-btn icon-only" id="btnResetPreset" title="Reset Design [R] to Preset Defaults">
             <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
           </button>
-          <button class="tool-btn icon-only" id="btnDiagnostics" title="Inspect Machine Compliance & TC-502 Jumps" style="border-color:rgba(14,165,233,0.4);color:#38bdf8;">
+          <button class="tool-btn icon-only" id="btnDiagnostics" title="Inspect Machine Compliance & TC-502 Jumps" style="border-color:rgba(229,169,60,0.35);color:var(--atelier-brass);">
             <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </button>
         </div>
@@ -1972,22 +1997,27 @@
     <div class="modal-card modal-card-lg">
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:10px;">
-          <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24" style="color:var(--accent-pink);"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24" style="color:var(--atelier-brass);"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
           <div>
             <h3 style="margin:0;font-size:15px;font-weight:700;color:#f8fafc;">Trace Artwork into Embroidery</h3>
             <div style="font-size:11px;color:#94a3b8;">K-Means++ CIELAB Quantization & Marching Squares Vectorizer</div>
           </div>
         </div>
-        <button id="closeImportBtn" class="btn" style="padding:4px 10px;font-size:14px;background:none;border:none;color:#94a3b8;cursor:pointer;">
-          <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button id="btnImportHelp" class="btn" style="padding:4px 10px;font-size:11px;border-color:rgba(229,169,60,0.4);color:var(--atelier-brass);background:var(--atelier-brass-faint);cursor:pointer;" title="Open Import Guide in Help Manual">
+            <span>Help Guide ↗</span>
+          </button>
+          <button id="closeImportBtn" class="btn" style="padding:4px 10px;font-size:14px;background:none;border:none;color:#94a3b8;cursor:pointer;">
+            <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
       </div>
 
       <div class="modal-body" style="gap:14px;padding:16px 20px;">
         <!-- File Dropzone & Quick Presets -->
         <div>
           <div id="dropZone" class="dropzone">
-            <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24" style="color:var(--accent-blue);"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z"/><polyline points="12 11 12 17"/><polyline points="9 14 12 11 15 14"/></svg>
+            <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24" style="color:var(--atelier-brass);"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z"/><polyline points="12 11 12 17"/><polyline points="9 14 12 11 15 14"/></svg>
             <div class="dropzone-title">Drop your PNG, JPG, or WebP artwork here</div>
             <div class="dropzone-sub">or click to browse local files (flat graphics or transparent patches recommended)</div>
             <input type="file" id="imageFileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none;" />
@@ -2018,7 +2048,7 @@
           <div class="preview-col">
             <div class="preview-header">
               <span>1. Original Bitmap</span>
-              <span id="previewOrigInfo" style="font-size:10px;color:var(--accent-blue);font-family:var(--font-mono);">-</span>
+              <span id="previewOrigInfo" style="font-size:10px;color:var(--atelier-brass);font-family:var(--font-mono);">-</span>
             </div>
             <div class="preview-canvas-wrap">
               <canvas id="previewOrigCanvas" width="180" height="180"></canvas>
@@ -2032,7 +2062,7 @@
           <div class="preview-col">
             <div class="preview-header">
               <span>2. Thread Palette</span>
-              <span id="previewQuantizedInfo" style="font-size:10px;color:var(--accent-blue);font-family:var(--font-mono);">-</span>
+              <span id="previewQuantizedInfo" style="font-size:10px;color:var(--atelier-brass);font-family:var(--font-mono);">-</span>
             </div>
             <div class="preview-canvas-wrap">
               <canvas id="previewQuantizedCanvas" width="180" height="180"></canvas>
@@ -2046,7 +2076,7 @@
           <div class="preview-col">
             <div class="preview-header">
               <span>3. Vector Outlines</span>
-              <span id="previewVectorsInfo" style="font-size:10px;color:var(--accent-blue);font-family:var(--font-mono);">-</span>
+              <span id="previewVectorsInfo" style="font-size:10px;color:var(--atelier-brass);font-family:var(--font-mono);">-</span>
             </div>
             <div class="preview-canvas-wrap">
               <canvas id="previewVectorsCanvas" width="180" height="180"></canvas>
@@ -2062,37 +2092,42 @@
           <div class="form-group" style="padding:0;">
             <div class="form-label">
               <span>Thread Colors (K)</span>
-              <span class="form-value" id="importKVal">3 colors</span>
+              <span class="form-value" id="importKVal" style="color:var(--atelier-brass);font-weight:700;">3 colors</span>
             </div>
+            <div style="font-size:9.5px;color:var(--accents-5);margin-bottom:6px;line-height:1.3;">CIELAB K-Means++ clustering: isolates dominant pigments into separate thread spool layers.</div>
             <input type="range" id="importKInput" min="2" max="6" step="1" value="3" />
           </div>
 
           <div class="form-group" style="padding:0;">
             <div class="form-label">
               <span>Target Hoop Width</span>
-              <span class="form-value" id="importWidthVal">75 mm</span>
+              <span class="form-value" id="importWidthVal" style="color:var(--atelier-brass);font-weight:700;">75 mm</span>
             </div>
+            <div style="font-size:9.5px;color:var(--accents-5);margin-bottom:6px;line-height:1.3;">Physical stitch-out size in mm; maintains aspect ratio and recalibrates stitch density.</div>
             <input type="range" id="importWidthInput" min="35" max="150" step="5" value="75" />
           </div>
 
           <div class="form-group" style="padding:0;">
             <div class="form-label">
               <span>Detail Smoothing (RDP)</span>
-              <span class="form-value" id="importSimplificationVal">0.8 mm</span>
+              <span class="form-value" id="importSimplificationVal" style="color:var(--atelier-brass);font-weight:700;">0.8 mm</span>
             </div>
+            <div style="font-size:9.5px;color:var(--accents-5);margin-bottom:6px;line-height:1.3;">Ramer-Douglas-Peucker epsilon tolerance: eliminates pixel staircasing while preserving sharp corners.</div>
             <input type="range" id="importSimplificationInput" min="0.4" max="2.5" step="0.1" value="0.8" />
           </div>
 
           <div class="form-group" style="padding:0;">
             <div class="form-label">
               <span>Grain Flow Angle</span>
-              <span class="form-value" id="importAngleVal">45°</span>
+              <span class="form-value" id="importAngleVal" style="color:var(--atelier-brass);font-weight:700;">45°</span>
             </div>
+            <div style="font-size:9.5px;color:var(--accents-5);margin-bottom:6px;line-height:1.3;">Physical thread lay orientation; sets structural push-pull compensation and light sheen.</div>
             <input type="range" id="importAngleInput" min="0" max="180" step="5" value="45" />
           </div>
 
           <div class="form-group" style="padding:0;">
             <label class="form-label">Default Stitch Weave</label>
+            <div style="font-size:9.5px;color:var(--accents-5);margin-bottom:6px;line-height:1.3;">Internal stitch geometry: Twill (diagonal pattern), Tatami (uniform scanline), or Satin.</div>
             <select id="importStitchType" style="padding:5px 8px;font-size:12px;">
               <option value="twill" selected>Twill Weave (Diagonal 0.25)</option>
               <option value="tatami">Tatami Fill (Scanline)</option>
@@ -2104,27 +2139,33 @@
           </div>
 
           <div class="form-group" style="padding:0;display:flex;flex-direction:column;justify-content:center;gap:6px;">
-            <label style="font-size:11.5px;color:var(--text-primary);display:flex;align-items:center;gap:6px;cursor:pointer;">
-              <input type="checkbox" id="importIgnoreWhite" checked style="accent-color:var(--accent-blue);" />
+            <label style="font-size:11px;color:var(--text-primary);display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="importIgnoreWhite" checked style="accent-color:var(--atelier-brass);" />
               <span>Ignore White Canvas (>245)</span>
             </label>
-            <label style="font-size:11.5px;color:var(--text-primary);display:flex;align-items:center;gap:6px;cursor:pointer;">
-              <input type="checkbox" id="importIgnoreAlpha" checked style="accent-color:var(--accent-blue);" />
+            <div style="font-size:9.5px;color:var(--accents-5);margin-left:18px;margin-top:-3px;">Drops blank backdrop so only artwork stitches.</div>
+
+            <label style="font-size:11px;color:var(--text-primary);display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="importIgnoreAlpha" checked style="accent-color:var(--atelier-brass);" />
               <span>Ignore Transparent Pixels</span>
             </label>
-            <label style="font-size:11.5px;color:var(--text-primary);display:flex;align-items:center;gap:6px;cursor:pointer;">
-              <input type="checkbox" id="importFilterBorder" checked style="accent-color:var(--accent-blue);" />
+            <div style="font-size:9.5px;color:var(--accents-5);margin-left:18px;margin-top:-3px;">Omits transparent alpha background in PNG/WebP.</div>
+
+            <label style="font-size:11px;color:var(--text-primary);display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="importFilterBorder" checked style="accent-color:var(--atelier-brass);" />
               <span>Filter Outer Sticker Border</span>
             </label>
+            <div style="font-size:9.5px;color:var(--accents-5);margin-left:18px;margin-top:-3px;">Prunes die-cut sticker perimeters around patches.</div>
           </div>
 
-
-          <div class="form-group" style="padding:0;display:flex;flex-direction:column;justify-content:center;">
-            <div style="font-size:11px;color:var(--text-muted);">
-              Hoop Fit: <span id="importHoopFitSummary" style="color:#f8fafc;font-family:var(--font-mono);">75.0 x 75.0 mm</span>
+          <div class="form-group" style="padding:0;display:flex;flex-direction:column;justify-content:center;background:#050505;border:1px solid var(--accents-2);border-radius:6px;padding:8px 12px;">
+            <div style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;justify-content:space-between;">
+              <span>Hoop Envelope:</span>
+              <span id="importHoopFitSummary" style="color:#f8fafc;font-family:var(--font-mono);font-weight:600;">75.0 x 75.0 mm</span>
             </div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
-              Estimated: <span id="importEstStitchesSummary" style="color:#38bdf8;font-family:var(--font-mono);">~1,900 stitches</span>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;display:flex;align-items:center;justify-content:space-between;">
+              <span>Estimated Density:</span>
+              <span id="importEstStitchesSummary" style="color:var(--atelier-brass);font-family:var(--font-mono);font-weight:700;">~1,900 stitches</span>
             </div>
           </div>
         </div>
@@ -2146,15 +2187,20 @@
     <div class="modal-card">
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:10px;">
-          <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24" style="color:var(--accent-blue);"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24" style="color:var(--atelier-brass);"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <div>
             <h3 style="margin:0;font-size:15px;font-weight:700;color:#f8fafc;">Machine Compliance & TC-502 Diagnostics</h3>
             <div style="font-size:11px;color:#94a3b8;">Tajima .DST / Melco .EXP Binary Inspector</div>
           </div>
         </div>
-        <button id="closeDiagnosticsBtn" class="btn" style="padding:4px 8px;font-size:14px;background:none;border:none;color:#94a3b8;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
-          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button id="btnDiagnosticsHelp" class="btn" style="padding:4px 10px;font-size:11px;border-color:rgba(229,169,60,0.4);color:var(--atelier-brass);background:var(--atelier-brass-faint);cursor:pointer;" title="Open Machine Formats Guide in Help Manual">
+            <span>Help Guide ↗</span>
+          </button>
+          <button id="closeDiagnosticsBtn" class="btn" style="padding:4px 8px;font-size:14px;background:none;border:none;color:#94a3b8;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
       </div>
       <div class="modal-body" id="diagnosticsBody">
         <!-- Injected dynamically via app.js -->
@@ -2164,23 +2210,42 @@
 
   <!-- In-Canvas Typography & Satin Lettering Modal -->
   <div id="letteringModal" class="modal-overlay" style="display:none;">
-    <div class="modal-card" style="max-width:540px;">
+    <div class="modal-card" style="max-width:560px;">
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:10px;">
-          <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24" style="color:var(--accent-blue);"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+          <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24" style="color:var(--atelier-brass);"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
           <div>
             <h3 style="margin:0;font-size:15px;font-weight:700;color:#f8fafc;">In-Canvas Typography & Lettering</h3>
             <div style="font-size:11px;color:#94a3b8;">Satin Columns, Tatami Blocks & Arc Warping</div>
           </div>
         </div>
-        <button id="closeLetteringBtn" class="btn" style="padding:4px 8px;font-size:14px;background:none;border:none;color:var(--accents-5);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
-          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button id="btnLetteringHelp" class="btn" style="padding:4px 10px;font-size:11px;border-color:rgba(229,169,60,0.4);color:var(--atelier-brass);background:var(--atelier-brass-faint);cursor:pointer;" title="Open Lettering Guide in Help Manual">
+            <span>Help Guide ↗</span>
+          </button>
+          <button id="closeLetteringBtn" class="btn" style="padding:4px 8px;font-size:14px;background:none;border:none;color:var(--accents-5);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
       </div>
       <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;padding:16px 20px;">
         <div>
           <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;display:block;margin-bottom:6px;">Text Content</label>
           <input type="text" id="letteringTextInput" value="ATHLETIC 26" style="width:100%;font-size:13px;font-weight:600;" placeholder="Enter lettering text..." />
+        </div>
+
+        <!-- Live Vector Arc Preview Strip -->
+        <div style="background:var(--accents-1);border:1px solid var(--accents-2);border-radius:8px;padding:10px 12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--atelier-brass);display:inline-flex;align-items:center;gap:5px;">
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--atelier-brass);"></span>
+              <span>Live Vector Arc Preview</span>
+            </span>
+            <span id="letteringPreviewMetrics" style="font-size:10.5px;color:var(--accents-5);font-family:var(--font-mono);">0° Arc • 20mm Satin</span>
+          </div>
+          <div style="width:100%;height:80px;background:#050505;border:1px solid var(--accents-2);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;">
+            <canvas id="letteringPreviewCanvas" width="520" height="80" style="width:100%;height:100%;display:block;"></canvas>
+          </div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -2209,14 +2274,14 @@
           <div>
             <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
               <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;">Height (mm)</label>
-              <span id="letteringHeightVal" style="font-size:11px;color:var(--accents-8);font-family:var(--font-mono);font-weight:600;">20 mm</span>
+              <span id="letteringHeightVal" style="font-size:11px;color:var(--atelier-brass);font-family:var(--font-mono);font-weight:600;">20 mm</span>
             </div>
             <input type="range" id="letteringHeightInput" min="8" max="50" value="20" step="1" style="width:100%;" />
           </div>
           <div>
             <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
               <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accents-5);letter-spacing:0.06em;">Arc Curve (°)</label>
-              <span id="letteringArcVal" style="font-size:11px;color:var(--accents-8);font-family:var(--font-mono);font-weight:600;">0°</span>
+              <span id="letteringArcVal" style="font-size:11px;color:var(--atelier-brass);font-family:var(--font-mono);font-weight:600;">0°</span>
             </div>
             <input type="range" id="letteringArcInput" min="-60" max="60" value="0" step="5" style="width:100%;" />
           </div>
@@ -2375,11 +2440,12 @@
           <!-- Tab 3: Lettering & Arc Warping -->
           <div class="help-tab-content" id="helpTabLettering" style="display:none;">
             <h4 style="font-size:16px;font-weight:700;color:var(--accents-8);margin-bottom:8px;">3. In-Canvas Typography & Satin Lettering</h4>
-            <p style="color:var(--accents-6);font-size:12.5px;margin-bottom:14px;">Click <strong>[Add Lettering]</strong> in the top header to generate satin and tatami text:</p>
+            <p style="color:var(--accents-6);font-size:12.5px;margin-bottom:14px;">Click <strong>[Add Lettering]</strong> in the top header or Left Sidebar to generate satin and tatami text:</p>
 
             <div style="font-size:11.5px;color:#ccc;display:flex;flex-direction:column;gap:10px;">
-              <div>• <strong>Font Styles:</strong> Collegiate Varsity / Block, Modern Sans-Serif, Elegant Serif, Cursive Script, and Monospace.</div>
-              <div>• <strong>Arc Warping (-60° to +60°):</strong> Bends text along a polar arch (positive values for convex arches, negative for concave ribbons). Warping occurs prior to stitch compilation so needle drops stay perpendicular to the curve.</div>
+              <div>• <strong>Live Vector Arc Preview Strip:</strong> Zero-latency interactive canvas preview renders real-time letter deformation, font styles, 3D thread sheen highlights, and arc angles before adding to canvas.</div>
+              <div>• <strong>Font Styles:</strong> Collegiate Varsity / Block, Modern Sans-Serif, Heritage Classic Serif, Cursive Script, and Technical Monospace.</div>
+              <div>• <strong>Arc Warping (-60° to +60°):</strong> Mathematically bends text along a circular polar chord ($R = \frac{W}{\theta}$). Warping occurs prior to stitch compilation so needle drops stay strictly perpendicular to the curve.</div>
               <div>• <strong>Inner Hole Detection:</strong> Letters like <code>A</code>, <code>B</code>, <code>D</code>, <code>O</code>, <code>P</code>, <code>0</code> automatically detect negative cutouts; stitches route cleanly around letter holes without sewing over negative space.</div>
               <div>• <strong>Size Recommendation:</strong> Keep letter height $\ge 12\text{mm}$ for crisp satin definition with standard 40wt thread.</div>
             </div>
@@ -2434,9 +2500,10 @@
                 • <strong>Vector (.SVG) & High-Res (.PNG):</strong> Clean paths and client visual proofs.
               </div>
               <div>
-                <strong style="color:var(--atelier-brass);">Commercial Production Gates:</strong><br>
+                <strong style="color:var(--atelier-brass);">Machine Compliance Diagnostics (Hotkey: D):</strong><br>
+                • <strong>Quality Score 100/100:</strong> Verifies commercial production readiness and Tajima .DST binary payload bytes.<br>
                 • <strong>TC-501:</strong> Long stitches clamped to $\le 7.0\text{mm}$ (subdivided into safe sewing stitches).<br>
-                • <strong>TC-502:</strong> Jumps clamped to $\le 12.1\text{mm}$ to prevent frame motor loss.<br>
+                • <strong>TC-502:</strong> Jumps clamped to $\le 12.1\text{mm}$ to prevent frame motor loss; long travels chunked into intermediate jumps.<br>
                 • <strong>TC-503:</strong> Travels $>5.0\text{mm}$ inject Tajima 3-jump hardware trims and 4-point star tie-off locks.<br>
                 • <strong>TC-504:</strong> Micro-stitches $<0.35\text{mm}$ suppressed to prevent thread balling and fabric holes.
               </div>
