@@ -369,6 +369,16 @@ function loadPreset(name) {
     }
   });
 
+  // Sync preset button active state
+  ['daisy', 'monogram', 'crest'].forEach(p => {
+    const btnId = p === 'daisy' ? 'presetDaisy' : p === 'monogram' ? 'presetMono' : 'presetCrest';
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      if (p === name) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+  });
+
   engine.activeLayerId = engine.layers[0].id;
   updateLayersUI();
   updateStats();
@@ -378,7 +388,23 @@ function loadPreset(name) {
 
 function updateLayersUI() {
   const container = document.getElementById('layersContainer');
+  if (!container) return;
   container.innerHTML = '';
+
+  // Calculate per-layer stitch counts and percentage from compiled stitches
+  let layerCounts = new Map();
+  let totalStitches = 0;
+  try {
+    const stitches = engine.compileStitches();
+    totalStitches = stitches.length;
+    for (let i = 0; i < stitches.length; i++) {
+      const s = stitches[i];
+      const cIdx = s.colorIndex !== undefined ? s.colorIndex : 0;
+      layerCounts.set(cIdx, (layerCounts.get(cIdx) || 0) + 1);
+    }
+  } catch (err) {
+    console.warn('Could not compile stitches for layer card telemetry:', err);
+  }
 
   engine.layers.forEach((layer, idx) => {
     const card = document.createElement('div');
@@ -441,43 +467,64 @@ function updateLayersUI() {
 
     const islandCount = layer.getPolygons ? layer.getPolygons().length : 1;
     const islandBadge = islandCount > 1
-      ? `<span class="badge mono" style="background:var(--accents-1);color:var(--accents-6);border:1px solid var(--accents-2);margin-right:4px;font-size:9px;">${islandCount} isl</span>`
+      ? `<span class="badge mono" style="background:var(--accents-1);color:var(--accents-6);border:1px solid var(--accents-2);margin-right:2px;font-size:9px;padding:1px 4px;">${islandCount} isl</span>`
       : '';
 
-    const colorDot = `<span class="color-badge" style="background:${layer.hex};flex-shrink:0;"></span>`;
+    const layerStitchCount = layerCounts.get(idx) || 0;
+    const layerPct = totalStitches > 0 ? Math.round((layerStitchCount / totalStitches) * 100) : 0;
     card.style.opacity = layer.hidden ? '0.45' : '1';
+
     card.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;width:100%;">
-        <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
-          <span class="drag-handle" title="Drag to reorder stitch sequence" style="cursor:grab;color:var(--accents-5);display:inline-flex;align-items:center;padding:2px 0;user-select:none;flex-shrink:0;">
-            <svg class="svg-icon" viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor;stroke:none;"><circle cx="8" cy="5" r="1.5"/><circle cx="16" cy="5" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg>
-          </span>
+      <div style="display:flex;flex-direction:column;gap:5px;width:100%;">
+        <!-- Row 1: Sequence Order, Drag Grip, Visibility, Title, Order Reorder -->
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:6px;">
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
+            <span class="drag-handle" title="Drag to reorder embroidery sequence" style="cursor:grab;color:var(--accents-5);display:inline-flex;align-items:center;padding:2px 3px;border-radius:4px;user-select:none;flex-shrink:0;">
+              <svg class="svg-icon" viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor;stroke:none;"><circle cx="8" cy="5" r="1.5"/><circle cx="16" cy="5" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg>
+            </span>
 
-          <button class="layer-visibility-btn" data-idx="${idx}" title="${layer.hidden ? 'Show layer on canvas' : 'Hide layer from canvas'}" style="background:${layer.hidden ? 'rgba(238,0,0,0.12)' : 'transparent'};border:1px solid ${layer.hidden ? 'rgba(238,0,0,0.3)' : 'transparent'};border-radius:4px;color:${layer.hidden ? 'var(--accent-error)' : 'var(--accents-5)'};cursor:pointer;padding:2px 3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease;">
-            ${layer.hidden
-              ? `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
-              : `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`
-            }
-          </button>
+            <button class="layer-visibility-btn" data-idx="${idx}" title="${layer.hidden ? 'Show layer on canvas' : 'Hide layer from canvas'}" style="background:${layer.hidden ? 'rgba(238,0,0,0.12)' : 'transparent'};border:1px solid ${layer.hidden ? 'rgba(238,0,0,0.3)' : 'transparent'};border-radius:4px;color:${layer.hidden ? 'var(--accent-error)' : 'var(--accents-5)'};cursor:pointer;padding:2px 3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease;">
+              ${layer.hidden
+                ? `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+                : `<svg class="svg-icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`
+              }
+            </button>
 
-          <span style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--accents-5);min-width:16px;flex-shrink:0;">#${idx + 1}</span>
-          ${colorDot}
-          <div style="min-width:0;flex:1;overflow:hidden;">
-            <div style="font-weight:500;font-size:12px;color:var(--accents-8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${layer.name}</div>
-            <div style="font-size:10px;color:var(--accents-6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${layer.threadCode}</div>
+            <span class="layer-order-badge" style="font-family:var(--font-mono);font-size:10.5px;font-weight:700;color:${layer.id === engine.activeLayerId ? 'var(--atelier-brass)' : 'var(--accents-5)'};min-width:18px;flex-shrink:0;">#${idx + 1}</span>
+
+            <div style="min-width:0;flex:1;overflow:hidden;">
+              <div style="font-weight:600;font-size:12px;color:var(--accents-8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.01em;">${layer.name}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
+            ${islandBadge}
+            <div class="layer-order-btns" style="display:flex;flex-direction:column;gap:1px;margin-left:2px;">
+              <button class="order-btn btn-up" data-idx="${idx}" title="Move earlier in embroidery sequence" style="background:transparent;border:none;color:var(--accents-5);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === 0 ? 'opacity:0.2;cursor:default;' : ''}">
+                <svg class="svg-icon" viewBox="0 0 24 24" style="width:9px;height:9px;"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <button class="order-btn btn-down" data-idx="${idx}" title="Move later in embroidery sequence" style="background:transparent;border:none;color:var(--accents-5);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === engine.layers.length - 1 ? 'opacity:0.2;cursor:default;' : ''}">
+                <svg class="svg-icon" viewBox="0 0 24 24" style="width:9px;height:9px;"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-          ${islandBadge}
-          <span class="badge mono" style="font-size:9.5px;text-transform:uppercase;background:var(--geist-background);border:1px solid var(--accents-2);color:var(--accents-6);">${layer.stitchType}</span>
-          <div class="layer-order-btns" style="display:flex;flex-direction:column;gap:1px;margin-left:2px;">
-            <button class="order-btn btn-up" data-idx="${idx}" title="Move earlier in embroidery sequence" style="background:transparent;border:none;color:var(--accents-5);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === 0 ? 'opacity:0.2;cursor:default;' : ''}">
-              <svg class="svg-icon" viewBox="0 0 24 24" style="width:9px;height:9px;"><polyline points="18 15 12 9 6 15"/></svg>
-            </button>
-            <button class="order-btn btn-down" data-idx="${idx}" title="Move later in embroidery sequence" style="background:transparent;border:none;color:var(--accents-5);cursor:pointer;padding:1px 2px;line-height:1;display:flex;align-items:center;justify-content:center;${idx === engine.layers.length - 1 ? 'opacity:0.2;cursor:default;' : ''}">
-              <svg class="svg-icon" viewBox="0 0 24 24" style="width:9px;height:9px;"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
+        <!-- Row 2: Thread Spool Chip, Weave Type & Per-Layer Stitch Telemetry -->
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:1px 2px 0;">
+          <!-- Thread Spool Chip -->
+          <div class="thread-spool-chip" title="${layer.name} • ${layer.hex} • ${layer.threadCode}">
+            <span class="spool-cylinder" style="background:linear-gradient(180deg, ${layer.hex} 0%, rgba(255,255,255,0.4) 30%, ${layer.hex} 70%, rgba(0,0,0,0.35) 100%);"></span>
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--accents-6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:115px;">${layer.threadCode}</span>
+          </div>
+
+          <!-- Stitch Type & Count Telemetry -->
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+            <span class="badge mono" style="font-size:9px;padding:1px 4px;text-transform:uppercase;background:var(--geist-background);border:1px solid var(--accents-2);color:var(--accents-6);">${layer.stitchType}</span>
+            <div class="layer-stitch-stat" style="font-family:var(--font-mono);font-size:10.5px;display:flex;align-items:center;gap:3px;">
+              <span style="color:${layer.hidden ? 'var(--accent-error)' : 'var(--accents-7)'};font-weight:600;">${layer.hidden ? 'MUTED' : layerStitchCount.toLocaleString()}</span>
+              ${!layer.hidden ? `<span style="font-size:9.5px;color:var(--atelier-brass);font-weight:500;">(${layerPct}%)</span>` : ''}
+            </div>
           </div>
         </div>
       </div>

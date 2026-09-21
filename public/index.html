@@ -365,13 +365,26 @@
     .preset-selector .btn.active {
       background: var(--accents-2);
       color: var(--accents-8);
+      border: 1px solid var(--accents-3);
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    .preset-selector .btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: calc(50% - 6px);
+      width: 12px;
+      height: 2px;
+      background: var(--atelier-brass);
+      border-radius: 1px;
     }
 
     .layers-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       padding: 0 16px;
       flex: 1;
       min-width: 0;
@@ -379,18 +392,18 @@
       overflow-y: auto;
     }
 
-    /* Geist Layer Cards */
+    /* Geist Atelier Layer Cards */
     .layer-card {
       background: var(--accents-1);
       border: 1px solid var(--accents-2);
-      border-radius: 8px;
-      padding: 9px 12px;
-      margin-bottom: 2px;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 1px;
       cursor: grab;
       transition: all 0.15s ease;
       min-width: 0;
       flex-shrink: 0;
-      min-height: 46px;
+      min-height: 52px;
       box-shadow: none;
     }
 
@@ -400,22 +413,23 @@
     }
 
     .layer-card.active {
-      border-color: var(--geist-selection) !important;
-      box-shadow: 0 0 0 1px var(--geist-selection) !important;
-      background: var(--accents-1) !important;
+      border-color: var(--atelier-brass) !important;
+      border-left: 3px solid var(--atelier-brass) !important;
+      box-shadow: 0 0 0 1px var(--atelier-brass), 0 2px 10px rgba(229, 169, 60, 0.12) !important;
+      background: linear-gradient(180deg, #151512 0%, #0d0d0b 100%) !important;
     }
 
     .layer-card.dragging {
-      opacity: 0.4;
+      opacity: 0.35;
       transform: scale(0.98);
     }
 
     .layer-card.drag-over-top {
-      border-top: 2px solid var(--geist-selection) !important;
+      border-top: 2px solid var(--atelier-brass) !important;
     }
 
     .layer-card.drag-over-bottom {
-      border-bottom: 2px solid var(--geist-selection) !important;
+      border-bottom: 2px solid var(--atelier-brass) !important;
     }
 
     .drag-handle {
@@ -423,12 +437,25 @@
       color: var(--accents-5) !important;
       display: inline-flex;
       align-items: center;
-      padding: 2px 0;
+      padding: 2px 3px;
+      border-radius: 4px;
       user-select: none;
       flex-shrink: 0;
+      transition: all 0.12s ease;
     }
     .drag-handle:hover {
-      color: var(--accents-8) !important;
+      color: var(--atelier-brass) !important;
+      background: var(--accents-2);
+    }
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .layer-card.active .layer-order-badge {
+      color: var(--atelier-brass) !important;
+    }
+    .layer-card.active .drag-handle {
+      color: var(--atelier-brass) !important;
     }
 
     .order-btn:hover {
@@ -438,6 +465,24 @@
     .layer-visibility-btn:hover {
       background: var(--accents-2) !important;
       color: var(--accents-8) !important;
+    }
+
+    /* Thread Spool Chip with 3D sheen */
+    .thread-spool-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .spool-cylinder {
+      width: 16px;
+      height: 10px;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.4);
+      flex-shrink: 0;
+      position: relative;
     }
 
     .color-badge {

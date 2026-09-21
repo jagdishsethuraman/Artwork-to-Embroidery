@@ -4,6 +4,18 @@ All notable changes to the Artwork-to-Embroidery Engine are documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-09-21
+
+### Added
+- **Phase 7 In-App Searchable Help Center (`#helpModal`):** 8 navigable topic tabs with real-time text query filter, `?` / `F1` trigger hotkeys, and escape navigation.
+- **Standalone Visual User Manual (`public/user-guide.html`):** Full-screen responsive guide in Geist Atelier styling with sticky sub-navigation, embedded high-resolution annotated studio screenshots, and parameter comparison tables.
+- **Two-Tier Industrial Layer Cards (`public/app.js` & `public/index.html`):**
+  - **3D Thread Spool Chips (`.spool-cylinder`):** Replaced flat color dot with realistic thread spool cylinder featuring horizontal sheen gradient reflection, catalog code pill (`Madeira #...`), and full thread tooltip.
+  - **Per-Layer Stitch Counters & Percentage:** Monospace live stitch count and percentage telemetry on every layer card (`1,248 sts (38%)`), with muted red indicator when layer is hidden.
+  - **Ergonomic Tactile Drag Handles:** Dedicated 6-dot matrix grip with hover background and Atelier Raw Brass drop indicators (`drag-over-top`, `drag-over-bottom`).
+  - **Atelier Raw Brass Active Border:** Active layer card features `#e5a93c` gold outline with glowing inset and matching brass sequence order badge (`#1`).
+  - **Preset Selector Active Pip Sync:** Dynamically syncs active tab indicator across Daisy, Monogram, and Crest presets.
+
 ## [2.0.0] - 2026-09-20
 
 ### Changed
